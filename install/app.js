@@ -3,8 +3,10 @@
 import { FastbootDevice, setDebugLevel } from "./vendor/fastboot/fastboot.mjs";
 import qrcode from "./vendor/qrcode-generator/qrcode.mjs";
 import { STEPS } from "./lib/build.js";
-import { sparseLayout } from "./lib/sparse.js";
-import { flashPhone, parseFastbootInfo } from "./lib/flash.js";
+import { flashPhone } from "./lib/flash.js";
+import { checkFirmware, openRemoteZip, parseScript, readEntry, readEntryStart } from "./lib/gosinstall.js";
+import { lpLayout, readLpTable, sparseStart } from "./lib/lp.js";
+import { superPieces } from "./lib/super.js";
 import { avbPkmd, decodeBackup, encodeBackup, fingerprintDisplay, fingerprintHex, generateOwnerKey, qrPayload } from "./lib/owner.js";
 
 const $ = (id) => document.getElementById(id);
@@ -271,6 +273,7 @@ $("build-start").addEventListener("click", async (e) => {
   });
 });
 $("log-copy").addEventListener("click", () => navigator.clipboard.writeText($("build-log").textContent));
+$("flash-log-copy").addEventListener("click", () => navigator.clipboard.writeText($("flash-log").textContent));
 
 // ---- 6. Flash
 
@@ -283,6 +286,60 @@ function prompt(text, button) {
   });
 }
 
+/**
+ * What GrapheneOS's installer uses for this release, from its install package on releases.grapheneos.org: the steps
+ * (script.txt), the requirements, the bootloader and radio firmware packs (checked against the signed update file the
+ * owner picked), and the super partition table (the layout +PLUS's super follows). Nothing is written to the phone here.
+ */
+async function prepareLoad(dir) {
+  const status = (t) => { $("flash-status").textContent = t; };
+  const image = async (name) => {
+    const f = state.files.find((x) => x.name === `${name}.img`);
+    return f ? (await (await dir.getFileHandle(f.file)).getFile()) : undefined;
+  };
+  status("Getting GrapheneOS's install steps for this release…");
+  const zip = await openRemoteZip(`https://releases.grapheneos.org/${state.device}-install-${state.otaBuild}.zip`);
+  const script = parseScript(new TextDecoder().decode(await readEntry(zip, zip.find("script.txt"))));
+  const androidInfo = new TextDecoder().decode(await readEntry(zip, zip.find("android-info.txt")));
+  const packs = {};
+  for (const [cmd, partition, file] of script) {
+    if (cmd !== "flash" || (partition !== "bootloader" && partition !== "radio") || packs[file]) continue;
+    status(`Getting GrapheneOS's ${partition} firmware (${Math.round(zip.find(file).size / 1e6)} MB)…`);
+    packs[file] = { partition, data: await readEntry(zip, zip.find(file)) };
+  }
+  status("Checking the firmware against your GrapheneOS update file…");
+  const pack = (p) => Object.values(packs).find((x) => x.partition === p)?.data;
+  const checked = await checkFirmware({ bootloader: pack("bootloader"), radio: pack("radio"),
+    otaImage: async (n) => { const f = await image(n); return f && new Uint8Array(await f.arrayBuffer()); } });
+  addFlashLog(`Firmware checked against the update file: ${checked.checked.join(", ")}`);
+
+  const firstSuper = script.find(([cmd, partition]) => cmd === "flash" && partition === "super");
+  if (!firstSuper) throw new Error("GrapheneOS's steps don't write super");
+  const template = readLpTable(sparseStart(await readEntryStart(zip, zip.find(firstSuper[2]), 64 << 10), 4 * 4096));
+  const partitions = template.partitions.map((p) => {
+    const f = state.files.find((x) => x.name === `${p.name}.img`);
+    if (!f) throw new Error(`this build has no ${p.name} image`);
+    return { name: p.name, size: f.size };
+  });
+  const layout = lpLayout({ superSize: template.superSize, partitions });
+  addFlashLog(`System partitions laid out as GrapheneOS's: ${partitions.map((p) => p.name).join(", ")}`);
+  const files = {};
+  for (const p of partitions) files[p.name] = await image(p.name);
+  const runs = Object.fromEntries(partitions.map((p) => [p.name, { runs: state.files.find((x) => x.name === `${p.name}.img`).runs }]));
+  return {
+    script, androidInfo, superSize: template.superSize,
+    gosFile: (name) => new Blob([packs[name].data]),
+    superPieces: (max) => superPieces({ layout, images: runs, maxBytes: max })
+      .map((parts) => new Blob(parts.map((x) => x.bytes ?? files[x.name].slice(x.offset, x.offset + x.length)))),
+    ownImages: Object.fromEntries(await Promise.all(state.files.map(async (f) => [f.name.replace(/\.img$/, ""), await image(f.name.replace(/\.img$/, ""))]))),
+  };
+}
+
+function addFlashLog(line) {
+  const log = $("flash-log");
+  if (log) log.textContent += `${line}\n`;
+}
+
 $("flash-connect").addEventListener("click", async (e) => {
   e.target.disabled = true;
   setDebugLevel(1);
@@ -290,28 +347,30 @@ $("flash-connect").addEventListener("click", async (e) => {
   try {
     await device.connect();
     const dir = await (await (await navigator.storage.getDirectory()).getDirectoryHandle(OPFS_DIR)).getDirectoryHandle("files");
+    const plan = await prepareLoad(dir);
     await flashPhone({
       device, deviceName: state.device,
-      steps: parseFastbootInfo(state.fastbootInfo),
-      openImage: async (p) => {
-        const f = state.files.find((x) => x.name === `${p}.img`);
-        if (!f) throw new Error(`the image for ${p} is missing`);
-        const file = await (await dir.getFileHandle(f.file)).getFile();
-        // Large images go as Android sparse images: headers plus slices of the raw file, no second copy.
-        return f.runs ? new Blob(sparseLayout(f.runs, f.size).map((x) => x.bytes ?? file.slice(x.offset, x.offset + x.length))) : file;
-      },
+      script: plan.script, androidInfo: plan.androidInfo, superSize: plan.superSize,
+      gosFile: plan.gosFile,
+      ownImage: (p) => plan.ownImages[p],
+      superPieces: plan.superPieces,
       ownerPkmd: avbPkmd(state.key),
       ui: {
         // After a restart the browser needs the phone chosen again; that must come from a click.
         onReconnect: () => prompt("The phone restarted. Press Reconnect and choose it again.", "Reconnect").then(() => device.connect()),
         confirmUnlock: () => prompt("Next: unlock the bootloader. After you press Unlock, use the volume keys on the phone to select \"Unlock the bootloader\" and press power.", "Unlock"),
         confirmLock: () => prompt("Last: lock the bootloader again. THIS ERASES THE PHONE. After you press Lock, select \"Lock the bootloader\" on the phone and press power.", "Lock"),
-        progress: (label, f) => { $("flash-status").textContent = label; $("flash-bar").value = f; },
+        progress: (label, f) => {
+          if (label !== $("flash-status").textContent) addFlashLog(label);
+          $("flash-status").textContent = label;
+          $("flash-bar").value = f;
+        },
       },
     });
     $("flash-status").textContent = "Done. The phone is restarting.";
     show("finish");
   } catch (err) {
+    addFlashLog(`STOPPED: ${err.stack ?? err.message}`);
     $("flash-status").textContent = `Loading stopped: ${err.message}. You can press Connect to try again from the start.`;
     e.target.disabled = false;
   }
@@ -352,7 +411,7 @@ async function offerResume() {
         $("resume-status").textContent = "That backup is a different key from the one this build was signed with.";
         return;
       }
-      Object.assign(state, { key, device: b.device, files: b.files, fastbootInfo: b.fastbootInfo });
+      Object.assign(state, { key, device: b.device, otaBuild: b.otaBuild, files: b.files, fastbootInfo: b.fastbootInfo });
       await showKey();
       show("flash");
     } catch (err) {
