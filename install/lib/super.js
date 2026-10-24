@@ -55,7 +55,7 @@ function splitRaw(c, blocks) {
 /**
  * @param o.layout lpLayout(...); o.images { name: { runs? } } (runs: sparseRuns of the image, else all data)
  * @param o.maxBytes the phone's max-download-size
- * @returns pieces: [[{ bytes } | { name, offset, length }, ...], ...]
+ * @returns pieces: [[{ bytes } | { name, offset, length }, ...], ...], each with .diskBytes (whole disk it describes)
  */
 export function superPieces({ layout, images, maxBytes }) {
   const { chunks, total } = chunksOf(layout, images);
@@ -65,19 +65,21 @@ export function superPieces({ layout, images, maxBytes }) {
   const groups = [];
   let cur = [], size = 0;
   const queue = chunks.filter((c) => c.type !== SKIP);
+  // A chunk that doesn't start where the previous one in the same piece ended needs a "don't care" between them.
+  const gap = (c) => (cur.length && c.block !== cur.at(-1).block + cur.at(-1).blocks ? CHUNK_HEADER : 0);
   for (let i = 0; i < queue.length; i++) {
     let c = queue[i];
-    if (size + chunkBytes(c) > room) {
+    if (size + gap(c) + chunkBytes(c) > room) {
       if (c.type === RAW) {
-        const fit = Math.floor((room - size - CHUNK_HEADER) / BLOCK);
-        if (fit > 0) { const [head, tail] = splitRaw(c, fit); cur.push(head); queue.splice(i + 1, 0, tail); c = null; }
+        const fit = Math.floor((room - size - gap(c) - CHUNK_HEADER) / BLOCK);
+        if (fit > 0) { const [head, tail] = splitRaw(c, fit); size += gap(head); cur.push(head); queue.splice(i + 1, 0, tail); c = null; }
       }
       if (cur.length) groups.push(cur);
       cur = [], size = 0;
       if (c === null) continue;
     }
+    size += gap(c) + chunkBytes(c);
     cur.push(c);
-    size += chunkBytes(c);
   }
   if (cur.length) groups.push(cur);
 
@@ -102,6 +104,7 @@ export function superPieces({ layout, images, maxBytes }) {
       parts.push({ bytes: chunkHeader(c.type, c.blocks, c.type === RAW ? c.blocks * BLOCK : c.type === FILL ? 4 : 0) });
       if (c.type === RAW) parts.push(c.data.bytes ? { bytes: c.data.bytes } : { name: c.data.name, offset: c.data.offset, length: c.blocks * BLOCK });
     }
+    parts.diskBytes = total * BLOCK; // the disk size the piece describes (fastboot.js measures progress against it)
     return parts;
   });
 }

@@ -3,7 +3,7 @@
 import { FastbootDevice, setDebugLevel } from "./vendor/fastboot/fastboot.mjs";
 import qrcode from "./vendor/qrcode-generator/qrcode.mjs";
 import { STEPS } from "./lib/build.js";
-import { flashPhone } from "./lib/flash.js";
+import { flashPhone, lockPhone } from "./lib/flash.js";
 import { checkFirmware, openRemoteZip, parseScript, readEntry, readEntryStart } from "./lib/gosinstall.js";
 import { lpLayout, readLpTable, sparseStart } from "./lib/lp.js";
 import { superPieces } from "./lib/super.js";
@@ -101,7 +101,19 @@ $("ota").addEventListener("change", () => {
   $("ota-status").textContent = !f ? "" : ok ? `${f.name}, ${gb(f.size)}. GrapheneOS's signature is checked during the build.`
     : `That isn't a GrapheneOS update file for this phone (expected ${state.device}-ota_update-<build>.zip).`;
   $("file-next").disabled = !ok;
-  if (ok) { state.ota = f; state.otaBuild = m[1]; }
+  if (ok) {
+    state.ota = f;
+    state.otaBuild = m[1];
+    // Loading needs GrapheneOS's install steps and firmware for this release: check they exist before the long build.
+    const build = m[1];
+    fetch(installUrl(state.device, build), { method: "HEAD" }).then((r) => {
+      if (state.otaBuild !== build) return;
+      if (r.status === 404) {
+        $("ota-status").textContent = `GrapheneOS no longer offers the install steps for ${build}. Download the current release instead.`;
+        $("file-next").disabled = true;
+      }
+    }, () => {}); // offline now: checked again when loading
+  }
 });
 $("file-form").addEventListener("submit", (e) => { e.preventDefault(); show("key"); });
 
@@ -291,21 +303,35 @@ function prompt(text, button) {
  * (script.txt), the requirements, the bootloader and radio firmware packs (checked against the signed update file the
  * owner picked), and the super partition table (the layout +PLUS's super follows). Nothing is written to the phone here.
  */
+const installUrl = (device, build) => `https://releases.grapheneos.org/${device}-install-${build}.zip`;
+let prepared = null; // { key, plan }: kept for the session, so pressing Connect again doesn't download the firmware again
+
 async function prepareLoad(dir) {
+  const key = `${state.device}-${state.otaBuild}`;
+  if (prepared?.key === key) return prepared.plan;
   const status = (t) => { $("flash-status").textContent = t; };
   const image = async (name) => {
     const f = state.files.find((x) => x.name === `${name}.img`);
     return f ? (await (await dir.getFileHandle(f.file)).getFile()) : undefined;
   };
   status("Getting GrapheneOS's install steps for this release…");
-  const zip = await openRemoteZip(`https://releases.grapheneos.org/${state.device}-install-${state.otaBuild}.zip`);
+  let zip;
+  try {
+    zip = await openRemoteZip(installUrl(state.device, state.otaBuild));
+  } catch (e) {
+    if (/no longer has/.test(e.message)) {
+      throw new Error(`GrapheneOS no longer offers release ${state.otaBuild} for this phone. Build again with the current release`);
+    }
+    throw e;
+  }
   const script = parseScript(new TextDecoder().decode(await readEntry(zip, zip.find("script.txt"))));
   const androidInfo = new TextDecoder().decode(await readEntry(zip, zip.find("android-info.txt")));
   const packs = {};
   for (const [cmd, partition, file] of script) {
     if (cmd !== "flash" || (partition !== "bootloader" && partition !== "radio") || packs[file]) continue;
-    status(`Getting GrapheneOS's ${partition} firmware (${Math.round(zip.find(file).size / 1e6)} MB)…`);
-    packs[file] = { partition, data: await readEntry(zip, zip.find(file)) };
+    const mb = Math.round(zip.find(file).size / 1e6);
+    const data = await readEntry(zip, zip.find(file), (f) => status(`Getting GrapheneOS's ${partition} firmware: ${Math.round(f * 100)}% of ${mb} MB…`));
+    packs[file] = { partition, data, blob: new Blob([data]) };
   }
   status("Checking the firmware against your GrapheneOS update file…");
   const pack = (p) => Object.values(packs).find((x) => x.partition === p)?.data;
@@ -326,13 +352,17 @@ async function prepareLoad(dir) {
   const files = {};
   for (const p of partitions) files[p.name] = await image(p.name);
   const runs = Object.fromEntries(partitions.map((p) => [p.name, { runs: state.files.find((x) => x.name === `${p.name}.img`).runs }]));
-  return {
+  for (const p of Object.values(packs)) delete p.data; // the checked bytes live on in the Blob only
+  const plan = {
     script, androidInfo, superSize: template.superSize,
-    gosFile: (name) => new Blob([packs[name].data]),
+    gosFile: (name) => packs[name].blob,
     superPieces: (max) => superPieces({ layout, images: runs, maxBytes: max })
-      .map((parts) => new Blob(parts.map((x) => x.bytes ?? files[x.name].slice(x.offset, x.offset + x.length)))),
+      .map((parts) => Object.assign(new Blob(parts.map((x) => x.bytes ?? files[x.name].slice(x.offset, x.offset + x.length))),
+        { diskBytes: parts.diskBytes })),
     ownImages: Object.fromEntries(await Promise.all(state.files.map(async (f) => [f.name.replace(/\.img$/, ""), await image(f.name.replace(/\.img$/, ""))]))),
   };
+  prepared = { key, plan };
+  return plan;
 }
 
 function addFlashLog(line) {
@@ -340,39 +370,57 @@ function addFlashLog(line) {
   if (log) log.textContent += `${line}\n`;
 }
 
+// One fastboot.js device for the page: each FastbootDevice registers USB listeners that are never removed, and a
+// second one would race the first to reopen the phone after every restart.
+let fastboot = null;
+let written = false; // everything is on the phone; only locking is left
+
 $("flash-connect").addEventListener("click", async (e) => {
   e.target.disabled = true;
   setDebugLevel(1);
-  const device = new FastbootDevice();
+  fastboot ??= new FastbootDevice();
+  const device = fastboot;
+  let wake = null;
+  const ui = {
+    // After a restart the browser needs the phone chosen again; that must come from a click.
+    onReconnect: () => prompt("The phone restarted. Press Reconnect and choose it again.", "Reconnect").then(() => device.connect()),
+    confirmUnlock: () => prompt("Next: unlock the bootloader. After you press Unlock, use the volume keys on the phone to select \"Unlock the bootloader\" and press power.", "Unlock"),
+    confirmLock: () => prompt("Last: lock the bootloader again. THIS ERASES THE PHONE. After you press Lock, select \"Lock the bootloader\" on the phone and press power.", "Lock"),
+    onWritten: () => { written = true; },
+    progress: (label, f) => {
+      if (label !== $("flash-status").textContent) addFlashLog(label);
+      $("flash-status").textContent = label;
+      $("flash-bar").value = f;
+    },
+  };
   try {
-    await device.connect();
-    const dir = await (await (await navigator.storage.getDirectory()).getDirectoryHandle(OPFS_DIR)).getDirectoryHandle("files");
-    const plan = await prepareLoad(dir);
-    await flashPhone({
-      device, deviceName: state.device,
-      script: plan.script, androidInfo: plan.androidInfo, superSize: plan.superSize,
-      gosFile: plan.gosFile,
-      ownImage: (p) => plan.ownImages[p],
-      superPieces: plan.superPieces,
-      ownerPkmd: avbPkmd(state.key),
-      ui: {
-        // After a restart the browser needs the phone chosen again; that must come from a click.
-        onReconnect: () => prompt("The phone restarted. Press Reconnect and choose it again.", "Reconnect").then(() => device.connect()),
-        confirmUnlock: () => prompt("Next: unlock the bootloader. After you press Unlock, use the volume keys on the phone to select \"Unlock the bootloader\" and press power.", "Unlock"),
-        confirmLock: () => prompt("Last: lock the bootloader again. THIS ERASES THE PHONE. After you press Lock, select \"Lock the bootloader\" on the phone and press power.", "Lock"),
-        progress: (label, f) => {
-          if (label !== $("flash-status").textContent) addFlashLog(label);
-          $("flash-status").textContent = label;
-          $("flash-bar").value = f;
-        },
-      },
-    });
+    await device.connect(); // first: choosing the phone needs this click's user activation
+    wake = await navigator.wakeLock?.request("screen").catch(() => null); // a sleeping computer drops USB mid-write
+    if (written) {
+      await lockPhone({ device, ui });
+    } else {
+      const dir = await (await (await navigator.storage.getDirectory()).getDirectoryHandle(OPFS_DIR)).getDirectoryHandle("files");
+      const plan = await prepareLoad(dir);
+      await flashPhone({
+        device, deviceName: state.device,
+        script: plan.script, androidInfo: plan.androidInfo, superSize: plan.superSize,
+        gosFile: plan.gosFile,
+        ownImage: (p) => plan.ownImages[p],
+        superPieces: plan.superPieces,
+        ownerPkmd: avbPkmd(state.key),
+        ui,
+      });
+    }
     $("flash-status").textContent = "Done. The phone is restarting.";
     show("finish");
   } catch (err) {
     addFlashLog(`STOPPED: ${err.stack ?? err.message}`);
-    $("flash-status").textContent = `Loading stopped: ${err.message}. You can press Connect to try again from the start.`;
+    $("flash-status").textContent = written
+      ? `Locking stopped: ${err.message}. Everything else is on the phone: press Connect to lock it.`
+      : `Loading stopped: ${err.message}. You can press Connect to try again from the start.`;
     e.target.disabled = false;
+  } finally {
+    wake?.release().catch(() => {});
   }
 });
 
