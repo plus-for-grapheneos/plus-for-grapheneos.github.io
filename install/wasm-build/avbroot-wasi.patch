@@ -1,0 +1,102 @@
+diff --git a/avbroot/Cargo.toml b/avbroot/Cargo.toml
+index 72f1453..492b285 100644
+--- a/avbroot/Cargo.toml
++++ b/avbroot/Cargo.toml
+@@ -23,7 +23,6 @@ cms = { git = "https://github.com/RustCrypto/formats", rev = "c478c6bb0db65677e8
+ const-oid = "0.10.2"
+ crc32fast = "1.4.2"
+ crypto-bigint = "0.7.5"
+-ctrlc = "3.4.0"
+ der = "0.8.1"
+ dlv-list = "0.6.0"
+ flate2 = { version = "1.0.29", features = ["zlib-rs"] }
+@@ -79,3 +78,6 @@ assert_matches = "1.5.0"
+ 
+ [lints]
+ workspace = true
++
++[target.'cfg(not(target_os = "wasi"))'.dependencies]
++ctrlc = "3.4.0"
+diff --git a/avbroot/src/crypto.rs b/avbroot/src/crypto.rs
+index 036a4cf..ab353a9 100644
+--- a/avbroot/src/crypto.rs
++++ b/avbroot/src/crypto.rs
+@@ -186,6 +186,13 @@ impl PassphraseSource {
+         }
+     }
+ 
++    /// No terminal under WASI: a passphrase must come from an environment variable or a file.
++    #[cfg(target_os = "wasi")]
++    fn prompt(_prompt: &str) -> Result<String> {
++        Err(Error::NotInteractive(std::io::Error::new(std::io::ErrorKind::Unsupported, "no terminal")))
++    }
++
++    #[cfg(not(target_os = "wasi"))]
+     fn prompt(prompt: &str) -> Result<String> {
+         match passterm::prompt_password_tty(Some(prompt)) {
+             Ok(p) => Ok(p),
+diff --git a/avbroot/src/lib.rs b/avbroot/src/lib.rs
+index 8c8d58d..c853898 100644
+--- a/avbroot/src/lib.rs
++++ b/avbroot/src/lib.rs
+@@ -8,6 +8,8 @@
+ //! The CLI source files use concrete types wherever possible for simplicity,
+ //! while the "library"-style source files aim to be generic.
+ 
++#![cfg_attr(target_os = "wasi", feature(wasi_ext))]
++
+ // We use pb-rs' nostd mode. See build.rs.
+ extern crate alloc;
+ 
+diff --git a/avbroot/src/main.rs b/avbroot/src/main.rs
+index 4b54c53..bb393e8 100644
+--- a/avbroot/src/main.rs
++++ b/avbroot/src/main.rs
+@@ -14,8 +14,15 @@ use tracing::error;
+ static LOGGING_INITIALIZED: AtomicBool = AtomicBool::new(false);
+ 
+ fn main() -> ExitCode {
++    // WASI has no standard temporary directory: use $TMPDIR, else /tmp.
++    #[cfg(target_os = "wasi")]
++    let _ = tempfile::env::override_temp_dir(std::path::Path::new(
++        &std::env::var("TMPDIR").unwrap_or_else(|_| "/tmp".to_owned()),
++    ));
++
+     // Set up a cancel signal so we can properly clean up any temporary files.
+     let cancel_signal = Arc::new(AtomicBool::new(false));
++    #[cfg(not(target_os = "wasi"))]
+     {
+         let signal = cancel_signal.clone();
+ 
+diff --git a/avbroot/src/stream.rs b/avbroot/src/stream.rs
+index 5b01661..3fb50da 100644
+--- a/avbroot/src/stream.rs
++++ b/avbroot/src/stream.rs
+@@ -497,6 +497,13 @@ impl ReadAt for File {
+         use std::os::unix::fs::FileExt;
+         FileExt::read_at(self, buf, offset)
+     }
++
++    /// Read data from offset (WASI pread).
++    #[cfg(target_os = "wasi")]
++    fn read_at(&self, buf: &mut [u8], offset: u64) -> io::Result<usize> {
++        use std::os::wasi::fs::FileExt;
++        FileExt::read_at(self, buf, offset)
++    }
+ }
+ 
+ /// Regular files support parallel writes.
+@@ -515,6 +522,13 @@ impl WriteAt for File {
+         FileExt::write_at(self, buf, offset)
+     }
+ 
++    /// Write data to offset (WASI pwrite).
++    #[cfg(target_os = "wasi")]
++    fn write_at(&self, buf: &[u8], offset: u64) -> io::Result<usize> {
++        use std::os::wasi::fs::FileExt;
++        FileExt::write_at(self, buf, offset)
++    }
++
+     fn file_flush(&self) -> io::Result<()> {
+         (&*self).flush()
+     }

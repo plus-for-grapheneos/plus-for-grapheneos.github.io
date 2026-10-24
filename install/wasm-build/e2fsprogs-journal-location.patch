@@ -1,0 +1,12 @@
+diff --git a/misc/mke2fs.c b/misc/mke2fs.c
+index f24076b..e8d67a6 100644
+--- a/misc/mke2fs.c
++++ b/misc/mke2fs.c
+@@ -2515,6 +2515,7 @@ profile_error:
+ 		journal_location = parse_num_blocks2(journal_location_string,
+ 						fs_param.s_log_block_size);
+ 	free(journal_location_string);
++	journal_location_string = NULL;
+ 
+ 	packed_meta_blocks = get_bool_from_profile(fs_types,
+ 						   "packed_meta_blocks", 0);

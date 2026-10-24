@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- +PLUS for GrapheneOS (replaces the GrapheneOS Updater's file). Not affiliated with or endorsed by the GrapheneOS project. -->
+<permissions>
+    <privapp-permissions package="app.seamlessupdate.client">
+        <permission name="android.permission.ACCESS_CACHE_FILESYSTEM"/>
+        <permission name="android.permission.ALLOCATE_AGGRESSIVE"/>
+        <permission name="android.permission.DELETE_PACKAGES"/>
+        <permission name="android.permission.INSTALL_PACKAGES"/>
+        <permission name="android.permission.REBOOT"/>
+    </privapp-permissions>
+</permissions>

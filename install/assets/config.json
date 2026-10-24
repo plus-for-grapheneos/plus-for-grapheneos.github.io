@@ -1,0 +1,97 @@
+{
+  "devices": {
+    "stallion": {
+      "name": "Pixel 10a",
+      "supported": true
+    },
+    "rango": {
+      "name": "Pixel 10 Pro Fold",
+      "supported": true
+    },
+    "mustang": {
+      "name": "Pixel 10 Pro XL",
+      "supported": true
+    },
+    "blazer": {
+      "name": "Pixel 10 Pro",
+      "supported": true
+    },
+    "frankel": {
+      "name": "Pixel 10",
+      "supported": true
+    },
+    "tegu": {
+      "name": "Pixel 9a",
+      "supported": true
+    },
+    "comet": {
+      "name": "Pixel 9 Pro Fold",
+      "supported": true
+    },
+    "komodo": {
+      "name": "Pixel 9 Pro XL",
+      "supported": true
+    },
+    "caiman": {
+      "name": "Pixel 9 Pro",
+      "supported": true
+    },
+    "tokay": {
+      "name": "Pixel 9",
+      "supported": true
+    },
+    "akita": {
+      "name": "Pixel 8a",
+      "supported": true
+    },
+    "husky": {
+      "name": "Pixel 8 Pro",
+      "supported": true
+    },
+    "shiba": {
+      "name": "Pixel 8",
+      "supported": true
+    },
+    "felix": {
+      "name": "Pixel Fold",
+      "supported": true
+    },
+    "tangorpro": {
+      "name": "Pixel Tablet",
+      "supported": true
+    },
+    "lynx": {
+      "name": "Pixel 7a",
+      "supported": true
+    },
+    "cheetah": {
+      "name": "Pixel 7 Pro",
+      "supported": true
+    },
+    "panther": {
+      "name": "Pixel 7",
+      "supported": true
+    },
+    "bluejay": {
+      "name": "Pixel 6a",
+      "supported": true
+    },
+    "raven": {
+      "name": "Pixel 6 Pro",
+      "supported": true
+    },
+    "oriole": {
+      "name": "Pixel 6",
+      "supported": true
+    }
+  },
+  "plus": {
+    "apk": "assets/plus/Plus.apk",
+    "version": 14
+  },
+  "systemXmls": {
+    "system/etc/permissions/app.seamlessupdate.client.xml": "assets/system/app.seamlessupdate.client.permissions.xml",
+    "system/etc/default-permissions/app.seamlessupdate.client.xml": "assets/system/app.seamlessupdate.client.default-permissions.xml",
+    "system/etc/sysconfig/app.seamlessupdate.client.xml": "assets/system/app.seamlessupdate.client.sysconfig.xml"
+  }
+}

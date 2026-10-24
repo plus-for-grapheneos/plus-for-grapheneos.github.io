@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<!-- +PLUS for GrapheneOS (replaces the GrapheneOS Updater's file). -->
+<exceptions>
+    <exception package="app.seamlessupdate.client">
+        <permission name="android.permission.POST_NOTIFICATIONS" fixed="true"/>
+    </exception>
+</exceptions>

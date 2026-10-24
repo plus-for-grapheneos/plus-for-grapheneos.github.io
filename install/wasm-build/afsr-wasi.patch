@@ -1,0 +1,192 @@
+diff --git a/build.rs b/build.rs
+index aaf5c14..b9f33a9 100644
+--- a/build.rs
++++ b/build.rs
+@@ -398,7 +398,7 @@ fn definitions_erofs(target: &Target, version: &str) -> Vec<String> {
+     // flags.push("-DHAVE_SYSCONF".to_owned());
+ 
+     // pthreads aren't available on Windows.
+-    if target.os != "windows" {
++    if target.os != "windows" && target.os != "wasi" {
+         flags.push("-DEROFS_MT_ENABLED".to_owned());
+ 
+         // [Not in AOSP]
+diff --git a/src/erofs.rs b/src/erofs.rs
+index d782589..06f5e42 100644
+--- a/src/erofs.rs
++++ b/src/erofs.rs
+@@ -47,7 +47,7 @@ use crate::{
+ 
+ pub type Result<T> = std::result::Result<T, io::Error>;
+ 
+-#[cfg(unix)]
++#[cfg(any(unix, target_os = "wasi"))]
+ fn ret_error(ret: i32) -> io::Error {
+     io::Error::from_raw_os_error(-ret)
+ }
+diff --git a/src/ext.rs b/src/ext.rs
+index ee690f3..1c12850 100644
+--- a/src/ext.rs
++++ b/src/ext.rs
+@@ -125,7 +125,7 @@ impl From<Error> for io::Error {
+ 
+ pub type Result<T> = std::result::Result<T, Error>;
+ 
+-#[cfg(unix)]
++#[cfg(any(unix, target_os = "wasi"))]
+ unsafe fn platform_io_manager() -> io_manager {
+     unsafe { crate::bindings::e2fs::unix_io_manager }
+ }
+diff --git a/src/main.rs b/src/main.rs
+index 8a7dc3f..86f38f5 100644
+--- a/src/main.rs
++++ b/src/main.rs
+@@ -15,6 +15,12 @@ mod util;
+ mod wrappers;
+ 
+ fn main() -> ExitCode {
++    // WASI has no standard temporary directory: use $TMPDIR, else /tmp.
++    #[cfg(target_os = "wasi")]
++    let _ = tempfile::env::override_temp_dir(std::path::Path::new(
++        &std::env::var("TMPDIR").unwrap_or_else(|_| "/tmp".to_owned()),
++    ));
++
+     ext::init();
+ 
+     match cli::main() {
+diff --git a/src/pack.rs b/src/pack.rs
+index cac2e89..d5fe43e 100644
+--- a/src/pack.rs
++++ b/src/pack.rs
+@@ -157,15 +157,27 @@ fn create_image_ext(
+         eprintln!("Running: {command:?}");
+     }
+ 
+-    let mut process = command
+-        .spawn()
+-        .with_context(|| format!("Failed to run command: {command:?}"))?;
+-    let status = process
+-        .wait()
+-        .with_context(|| format!("Failed to wait for command: {command:?}"))?;
+-
+-    if !status.success() {
+-        bail!("Command failed: {status}: {command:?}");
++    // WASI cannot start processes: run the bundled command in this process.
++    #[cfg(target_os = "wasi")]
++    {
++        let ret = crate::wrappers::run_in_process(&command)?;
++        if ret != 0 {
++            bail!("Command failed: exit {ret}: {command:?}");
++        }
++    }
++
++    #[cfg(not(target_os = "wasi"))]
++    {
++        let mut process = command
++            .spawn()
++            .with_context(|| format!("Failed to run command: {command:?}"))?;
++        let status = process
++            .wait()
++            .with_context(|| format!("Failed to wait for command: {command:?}"))?;
++
++        if !status.success() {
++            bail!("Command failed: {status}: {command:?}");
++        }
+     }
+ 
+     Ok(())
+@@ -618,15 +630,27 @@ fn create_image_erofs(
+         eprintln!("Running: {command:?}");
+     }
+ 
+-    let mut process = command
+-        .spawn()
+-        .with_context(|| format!("Failed to run command: {command:?}"))?;
+-    let status = process
+-        .wait()
+-        .with_context(|| format!("Failed to wait for command: {command:?}"))?;
++    // WASI cannot start processes: run the bundled command in this process.
++    #[cfg(target_os = "wasi")]
++    {
++        let ret = crate::wrappers::run_in_process(&command)?;
++        if ret != 0 {
++            bail!("Command failed: exit {ret}: {command:?}");
++        }
++    }
+ 
+-    if !status.success() {
+-        bail!("Command failed: {status}: {command:?}");
++    #[cfg(not(target_os = "wasi"))]
++    {
++        let mut process = command
++            .spawn()
++            .with_context(|| format!("Failed to run command: {command:?}"))?;
++        let status = process
++            .wait()
++            .with_context(|| format!("Failed to wait for command: {command:?}"))?;
++
++        if !status.success() {
++            bail!("Command failed: {status}: {command:?}");
++        }
+     }
+ 
+     Ok(())
+diff --git a/src/util.rs b/src/util.rs
+index 447bafe..adea944 100644
+--- a/src/util.rs
++++ b/src/util.rs
+@@ -118,7 +118,7 @@ pub fn path_cstring(path: &Path) -> Option<CString> {
+     Some(cstr)
+ }
+ 
+-#[cfg(windows)]
++#[cfg(any(windows, target_os = "wasi"))]
+ pub fn path_cstring(path: &Path) -> Option<CString> {
+     let s = path.to_str()?.to_owned();
+     // Embedded null bytes are not possible.
+diff --git a/src/wrappers/mod.rs b/src/wrappers/mod.rs
+index e1e2251..7bea63d 100644
+--- a/src/wrappers/mod.rs
++++ b/src/wrappers/mod.rs
+@@ -15,7 +15,7 @@ fn os_string_to_c_string(s: OsString) -> Result<CString, OsString> {
+     CString::new(s.into_vec()).map_err(|e| OsString::from_vec(e.into_vec()))
+ }
+ 
+-#[cfg(windows)]
++#[cfg(any(windows, target_os = "wasi"))]
+ fn os_string_to_c_string(s: OsString) -> Result<CString, OsString> {
+     let utf8 = s.into_string()?;
+ 
+@@ -51,3 +51,32 @@ impl Drop for Argv {
+         }
+     }
+ }
++
++/// WASI: run a bundled subcommand (`mke2fs`, `mkfs.erofs`) in this process, with the command's environment.
++#[cfg(target_os = "wasi")]
++pub fn run_in_process(command: &std::process::Command) -> Result<i32> {
++    for (k, v) in command.get_envs() {
++        match v {
++            Some(v) => unsafe { std::env::set_var(k, v) },
++            None => unsafe { std::env::remove_var(k) },
++        }
++    }
++    let mut args = command.get_args();
++    let sub = args.next().ok_or_else(|| anyhow!("No subcommand"))?.to_owned();
++    let mut argv = Argv::default();
++    argv.push(sub.clone())?;
++    for a in args {
++        argv.push(a.to_owned())?;
++    }
++    // getopt keeps its position between calls; a separate process always started fresh.
++    unsafe extern "C" {
++        static mut optind: std::ffi::c_int;
++    }
++    unsafe { optind = 0 };
++    let ret = match sub.to_str() {
++        Some("mke2fs") => unsafe { crate::bindings::e2fs::mke2fs_main(argv.argc(), argv.argv()) },
++        Some("mkfs.erofs") => unsafe { crate::bindings::erofs::mkfs_erofs_main(argv.argc(), argv.argv()) },
++        _ => return Err(anyhow!("Unknown subcommand: {sub:?}")),
++    };
++    Ok(ret)
++}

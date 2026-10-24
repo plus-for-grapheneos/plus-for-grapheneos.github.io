@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- +PLUS for GrapheneOS (replaces the GrapheneOS Updater's file). -->
+<config>
+    <allow-in-power-save package="app.seamlessupdate.client" />
+</config>

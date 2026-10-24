@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>+PLUS for GrapheneOS</title>
+<meta name="description" content="Plus-ups for GrapheneOS: optional add-ons, built into your phone's updates and signed with your own key.">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-512.png">
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: light-dark(#f8fafc, #0b1220);
+    --fg: light-dark(#0f172a, #e2e8f0);
+    --muted: light-dark(#475569, #94a3b8);
+    --accent: light-dark(#1d4ed8, #93c5fd);
+  }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font: 1.0625rem/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  main { max-width: 40rem; margin: 0 auto; padding: 4rem 1rem 3rem; }
+  header { display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem; }
+  header img { width: 3.5rem; height: 3.5rem; }
+  h1 { font-size: 1.75rem; line-height: 1.2; margin: 0; }
+  .tagline { margin: .25rem 0 0; color: var(--muted); }
+  h2 { font-size: 1.25rem; margin: 2rem 0 .5rem; }
+  a { color: var(--accent); }
+  ul.links { list-style: none; padding: 0; margin: 2rem 0; display: grid; gap: .75rem; }
+  ul.links a { font-weight: 600; }
+  img.contact { display: block; max-width: 100%; height: auto; margin-bottom: .25rem; }
+  footer { margin-top: 3rem; font-size: .875rem; color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <img src="icon.svg" alt="">
+    <div>
+      <h1>+PLUS for GrapheneOS</h1>
+      <p class="tagline">Plus-ups for GrapheneOS.</p>
+    </div>
+  </header>
+
+  <p>+PLUS adds optional extras to a GrapheneOS phone, such as a phone app with call screening and on-device AI,
+    while keeping verified boot and automatic updates.</p>
+  <p>You hold the signing key. The phone builds each official GrapheneOS update with your chosen add-ons and signs it
+    with your own key. Without add-ons, +PLUS simply keeps GrapheneOS up to date.</p>
+  <h2>The first plus-up: call screening</h2>
+  <p>Our first plus-up for GrapheneOS is call screening, a much-requested feature that the project's author really
+    wanted. It is highly customizable and runs entirely on the phone, with on-device search, transcripts and call
+    notes. It is coming to the catalog soon.</p>
+
+  <h2>Setting up a phone</h2>
+  <p>To keep the first setup simple, the whole job of patching a GrapheneOS image with +PLUS, the re-signing and
+    update tool, happens in your browser. It takes much longer than dedicated computer tools, but it is foolproof and
+    automatic, and nothing is sent anywhere.</p>
+  <p>You can back up your own signing key for special recovery tasks, if you ever need it. Encrypt it with a hardware
+    token, keep it in a password manager, or put it in a safety deposit box: how you keep it is up to you.</p>
+
+  <p>This is an early test version. More about the project will follow.</p>
+
+  <ul class="links">
+    <li><a href="install/">Set up a phone</a> (test version; desktop Chrome or Edge)</li>
+    <li><a href="catalog/">Add-on catalog</a></li>
+    <li><a href="https://github.com/plus-for-grapheneos">Source on GitHub</a></li>
+  </ul>
+
+  <h2>Contact</h2>
+  <p><img src="contact.png" width="330" height="44" alt="Contact email address (shown as an image)" class="contact"><br>
+    This address is changed from time to time to keep spam down.</p>
+
+  <footer>+PLUS for GrapheneOS is an independent project, not affiliated with or endorsed by the GrapheneOS project.</footer>
+</main>
+</body>
+</html>

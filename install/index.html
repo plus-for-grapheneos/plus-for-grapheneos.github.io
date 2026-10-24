@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>+PLUS Setup</title>
+  <meta name="color-scheme" content="light dark">
+  <link rel="stylesheet" href="style.css">
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <header class="top">
+    <h1>+PLUS setup <span class="tag">test page</span></h1>
+    <p>Builds GrapheneOS with +PLUS for your phone, signed with a key only you hold, and loads it over USB.
+      Everything happens in this browser: nothing is uploaded.</p>
+  </header>
+
+  <ol class="steps" id="steps" aria-label="Setup steps">
+    <li data-step="check">Check</li>
+    <li data-step="model">Phone</li>
+    <li data-step="file">GrapheneOS</li>
+    <li data-step="key">Your key</li>
+    <li data-step="build">Build</li>
+    <li data-step="flash">Load</li>
+    <li data-step="finish">Finish</li>
+  </ol>
+
+  <main>
+    <section id="check" hidden>
+      <h2>Before you start</h2>
+      <ul id="checks" class="checks"></ul>
+      <p>You need: the phone, already running <strong>official GrapheneOS</strong> (from GrapheneOS's own web installer),
+        a USB cable, a place to keep a secret (a password manager or a printed sheet in a safe place), and about an hour.
+        <strong>The phone will be erased.</strong></p>
+      <button type="button" id="check-next" disabled>Start</button>
+      <div id="resume" class="prompt" hidden>
+        <p id="resume-text"></p>
+        <form id="resume-form">
+          <label for="resume-backup">Paste your key backup (PLUSKEY1-…) to continue</label>
+          <textarea id="resume-backup" name="backup" rows="5" autocomplete="off" autocorrect="off" autocapitalize="off"
+            spellcheck="false" required aria-describedby="resume-status"></textarea>
+          <p id="resume-status" class="status" role="status"></p>
+          <button type="submit">Continue to loading</button>
+          <button type="button" id="resume-delete">Delete this build</button>
+        </form>
+      </div>
+    </section>
+
+    <section id="model" hidden>
+      <h2>Which phone?</h2>
+      <form id="model-form">
+        <fieldset>
+          <legend>Phone model</legend>
+          <div id="models" class="choices"></div>
+        </fieldset>
+        <button type="submit">Next</button>
+      </form>
+    </section>
+
+    <section id="file" hidden>
+      <h2>Get GrapheneOS</h2>
+      <p>Download the official GrapheneOS update file for your phone from GrapheneOS's server, then choose it here.
+        Use the same release your phone runs now, or a newer one (Settings &gt; About phone &gt; Build number).</p>
+      <ul id="release-links" class="links"></ul>
+      <form id="file-form">
+        <label for="ota">GrapheneOS update file (<span id="ota-pattern"></span>)</label>
+        <input type="file" id="ota" name="ota" accept=".zip" required aria-describedby="ota-status">
+        <p id="ota-status" class="status" role="status"></p>
+        <button type="submit" id="file-next" disabled>Next</button>
+      </form>
+    </section>
+
+    <section id="key" hidden>
+      <h2>Your key</h2>
+      <p>+PLUS signs every update for your phone with this key. Whoever has it can make your phone accept an update,
+        but still can't unlock it without your PIN. <strong>Save the backup now</strong>: it is the only copy, and
+        nobody can recover it for you.</p>
+      <div id="key-new">
+        <button type="button" id="key-create">Create my key</button>
+        <details>
+          <summary>I already have a +PLUS key backup</summary>
+          <form id="key-restore">
+            <label for="backup-in">Your backup (PLUSKEY1-…)</label>
+            <textarea id="backup-in" name="backup" rows="5" autocomplete="off" autocorrect="off" autocapitalize="off"
+              spellcheck="false" required aria-describedby="backup-in-status"></textarea>
+            <p id="backup-in-status" class="status" role="status"></p>
+            <button type="submit">Use this key</button>
+          </form>
+        </details>
+      </div>
+      <div id="key-sheet" class="key-sheet" hidden>
+        <h3>+PLUS key backup</h3>
+        <p>Fingerprint: <code id="fingerprint"></code></p>
+        <pre id="backup-text" class="backup" tabindex="0" aria-label="Key backup text"></pre>
+        <div id="qr" class="qr" aria-label="Key as a QR code" role="img"></div>
+        <div class="actions no-print">
+          <button type="button" id="backup-copy">Copy</button>
+          <button type="button" id="backup-download">Download as a text file</button>
+          <button type="button" id="backup-print">Print a key sheet</button>
+        </div>
+        <form id="key-confirm" class="no-print">
+          <label for="last-block">To confirm you saved it, type the last block of 5 characters</label>
+          <input id="last-block" name="last" maxlength="5" autocomplete="off" autocorrect="off" autocapitalize="characters"
+            spellcheck="false" required aria-describedby="last-block-status">
+          <p id="last-block-status" class="status" role="status"></p>
+          <button type="submit">I saved it</button>
+        </form>
+      </div>
+    </section>
+
+    <section id="build" hidden>
+      <h2>Build your image</h2>
+      <p>About 20 to 45 minutes, depending on the computer. Keep this tab open; the computer must not go to sleep.
+        Make sure your disk has about <span id="space-needed"></span> free: the browser keeps the build there.</p>
+      <p id="space-status" class="status" role="status"></p>
+      <button type="button" id="build-start">Build</button>
+      <div id="build-progress" hidden>
+        <label for="build-bar">Overall</label>
+        <progress id="build-bar" max="1" value="0"></progress>
+        <ol id="build-steps" class="build-steps"></ol>
+        <p id="build-status" class="status" role="status"></p>
+        <p id="build-activity" class="activity"></p>
+        <p id="build-last" class="last-line"></p>
+        <details>
+          <summary>Technical log</summary>
+          <pre id="build-log" class="log"></pre>
+          <button type="button" id="log-copy">Copy the log</button>
+        </details>
+      </div>
+    </section>
+
+    <section id="flash" hidden>
+      <h2>Load it onto the phone</h2>
+      <ol class="howto">
+        <li>On the phone: Settings &gt; System &gt; Developer options &gt; turn on <strong>OEM unlocking</strong>.
+          (Developer options appear after tapping Build number 7 times in About phone.)</li>
+        <li>Turn the phone off. Hold <strong>volume down</strong> and press <strong>power</strong>: the bootloader screen appears.</li>
+        <li>Connect the USB cable, then press Connect and choose the phone.</li>
+      </ol>
+      <button type="button" id="flash-connect">Connect</button>
+      <div id="flash-prompt" class="prompt" hidden>
+        <p id="flash-prompt-text"></p>
+        <button type="button" id="flash-prompt-button"></button>
+      </div>
+      <label for="flash-bar">Progress</label>
+      <progress id="flash-bar" max="1" value="0"></progress>
+      <p id="flash-status" class="status" role="status"></p>
+    </section>
+
+    <section id="finish" hidden>
+      <h2>Last steps on the phone</h2>
+      <ol class="howto">
+        <li>The phone restarts and erases itself. Go through GrapheneOS setup and <strong>set a PIN or password</strong>.</li>
+        <li>Open +PLUS (Settings &gt; System &gt; System update) and tap <strong>Import your key</strong>, then scan this code.</li>
+        <li>Then, in Developer options, turn <strong>OEM unlocking off</strong>. With it off, nobody can unlock the bootloader
+          without first unlocking the phone. If the phone ever won't start, a repair image signed with your key installs
+          without unlocking.</li>
+      </ol>
+      <div id="finish-qr" class="qr big" role="img" aria-label="Key as a QR code"></div>
+      <p>Fingerprint: <code id="finish-fingerprint"></code> (+PLUS shows the same after importing)</p>
+      <button type="button" id="finish-print" class="secondary">Print a key sheet</button>
+      <button type="button" id="cleanup">Delete the build files from this browser</button>
+      <p id="cleanup-status" class="status" role="status"></p>
+    </section>
+  </main>
+
+  <!-- The only thing that prints, from any step: one page to keep in a safe. Filled in once the key exists. -->
+  <article id="print-sheet" class="print-sheet" aria-hidden="true">
+    <h1>+PLUS key backup</h1>
+    <p class="sheet-warning">Keep this page somewhere safe, such as a safe or a locked drawer. Don't photograph it, scan it
+      into a computer or share it.</p>
+    <table class="sheet-facts">
+      <tr><th>Phone</th><td id="sheet-phone"></td></tr>
+      <tr><th>Key fingerprint</th><td><code id="sheet-fingerprint"></code> (+PLUS shows the same)</td></tr>
+      <tr><th>Printed</th><td id="sheet-date"></td></tr>
+    </table>
+    <div class="sheet-body">
+      <div id="sheet-qr" class="sheet-qr"></div>
+      <div>
+        <h2>Key backup text</h2>
+        <pre id="sheet-text" class="sheet-text"></pre>
+      </div>
+    </div>
+    <h2>What this is</h2>
+    <p>The key that signs every update for your phone. With it, someone could sign updates for your phone, but could not
+      unlock the phone without your PIN or password. Without it, a phone that stops starting can only be recovered by
+      erasing it.</p>
+    <h2>How to use it</h2>
+    <p>In +PLUS, tap <b>Import your key</b> and scan the code above, or type the backup text. The setup page's
+      "I already have a +PLUS key backup" accepts the text too.</p>
+  </article>
+
+  <footer>
+    <p>+PLUS for GrapheneOS. Not affiliated with or endorsed by the GrapheneOS project. Uses avbroot and afsr by
+      Andrew Gunnerson (GPL-3.0), fastboot.js by Danny Lin (MIT), browser_wasi_shim (MIT/Apache-2.0) and
+      qrcode-generator by Kazuhiko Arase (MIT).</p>
+  </footer>
+</body>
+</html>
