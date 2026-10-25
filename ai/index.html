@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>On-device AI experiments</title>
+<meta name="description" content="Work in progress: what the open-weight Gemma 4 E2B model can do on a phone for call screening, call notes, search and SMS spam detection, with the experiments and findings so far.">
+<link rel="icon" href="../icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../site.css">
+</head>
+<body>
+<main>
+  <header class="top">
+    <img src="../icon.svg" alt="">
+    <div>
+      <h1>On-device AI experiments</h1>
+      <p class="tagline">Call notes, search and spam detection: a work in progress</p>
+    </div>
+  </header>
+
+  <nav class="toc" aria-label="On this page">
+    <a href="../">+PLUS home</a>
+    <a href="#how">How we test</a>
+    <a href="#models">Which model fits</a>
+    <a href="#screening">Screening decisions</a>
+    <a href="#notes">Call notes</a>
+    <a href="#search">Search</a>
+    <a href="#sms">SMS spam</a>
+    <a href="#next">What's next</a>
+    <a href="#data">Share data</a>
+  </nav>
+
+  <p class="lead">Call notes and search in Phone+ come from the optional +PLUS AI plus-up: a language model that runs on
+    the phone. This part is a work in progress. We are running experiments to see what we can get out of the
+    open-weight <strong>Gemma 4 E2B</strong> model.</p>
+  <ul>
+    <li>It may be possible to fit the larger <strong>Gemma 4 E4B</strong> on phones with more RAM.</li>
+    <li>Experiments are under way to find the best system prompts, to get acceptable results both with and without
+      fine-tuning.</li>
+    <li>We are also evaluating <strong>on-phone spam detection for SMS messages</strong>, combining typical spam
+      detection with classification by a fine-tuned language model.</li>
+  </ul>
+  <p>More will be reported here in the future. <strong>If you have lots of classified sample calls or messages you are
+    willing to share, please <a href="#data">get in contact</a>.</strong></p>
+
+  <h2 id="how">How we test</h2>
+  <ul>
+    <li><strong>Everything stays local.</strong> The test data is a private set of real calls (about 110 recorded and
+      transcribed calls) and texts (about 15,000 messages). It never goes to a network service, and only aggregate
+      numbers appear here.</li>
+    <li><strong>On the phone, and on a computer for comparison.</strong> On the phone the model runs in +PLUS AI
+      (LiteRT-LM, int4, on the GPU of a Pixel 9). The same model also runs on a PC (llama.cpp), which is faster to
+      experiment with. The two don't always agree: see <a href="#notes">call notes</a>.</li>
+    <li><strong>Reference labels</strong> were written for each call and text without looking at the model's answers;
+      for texts, a second labeller agreed on spam-or-not 98% of the time.</li>
+  </ul>
+  <p class="note">All of this is one person's calls and messages. The numbers are a guide, not a benchmark: before we
+    trust them we need data from other people too.</p>
+
+  <h2 id="models">Which model fits on a phone</h2>
+  <p>Speed on a Pixel 9 (Tensor G4), measured with Google's AI Edge Gallery: 256 tokens in, 256 out, average of 3 runs.</p>
+  <div class="table"><table>
+    <thead><tr><th>Model</th><th>Backend</th><th>Prompt (tokens/s)</th><th>Generation (tokens/s)</th><th>First token</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Gemma 4 E2B</strong></td><td>GPU</td><td>659</td><td>14.3</td><td>0.46 s</td></tr>
+      <tr><td>Gemma 4 E2B</td><td>CPU</td><td>174</td><td>17.1</td><td>1.53 s</td></tr>
+      <tr><td>Gemma 3n E2B</td><td>GPU</td><td>336</td><td>8.1</td><td>0.89 s</td></tr>
+      <tr><td>Qwen2.5 1.5B Instruct</td><td>GPU</td><td>219</td><td>13.5</td><td>1.24 s</td></tr>
+    </tbody>
+  </table></div>
+  <ul>
+    <li><strong>Gemma 4 E2B is the practical choice today:</strong> the fastest, Apache-2.0 licensed (so it can be
+      offered freely), and fast enough for a live label in about half a second and a call summary in about 10 to 15
+      seconds.</li>
+    <li><strong>The larger E4B size</strong> was more accurate in some tasks in our tests with Gemma 3n E4B (below),
+      but it needs about 4 GB of memory: on a 12 GB Pixel 9, loading it made Android close background apps. Gemma 4
+      E4B on phones with 16 GB is still to be tested.</li>
+    <li>The phone build of Gemma 4 E2B allows about 4,000 tokens. A typical call transcript is 1,500 to 2,000 tokens;
+      long calls need splitting.</li>
+  </ul>
+
+  <h2 id="screening">Screening decisions: let the model read, let rules decide</h2>
+  <p>During a screened call, the assistant must make small judgements in about half a second. We compared the model with
+    the hand-written rules of the default screening script:</p>
+  <div class="table"><table>
+    <thead><tr><th>Task</th><th>Rules</th><th>Gemma 4 E2B</th><th>Finding</th></tr></thead>
+    <tbody>
+      <tr><td>Is the caller asking to repeat, just saying they're there, refusing, or answering?</td><td>0.60</td>
+        <td>0.93</td><td>The model is much better at this.</td></tr>
+      <tr><td>"Is it urgent?" answered yes or no</td><td>0.74</td><td>0.98</td><td>The model is much better.</td></tr>
+      <tr><td>Wrong number</td><td></td><td>0.99</td><td>Only when the model <em>extracts</em> the name asked for and
+        a fixed matcher decides. When the model decided directly, it took wrong-number callers for you.</td></tr>
+      <tr><td>Spam, automated or a real person?</td><td></td><td>0.81</td><td>Only when the model extracts (name and
+        company, 0.92 each) and rules decide. Deciding directly, an earlier model marked 23% of real callers as spam;
+        with extraction, 1 in 56.</td></tr>
+    </tbody>
+  </table></div>
+  <p>The lesson so far: a small model is a good reader and a poor judge. It should fill in the caller card and classify
+    short replies; the decision to ring you or end the call stays with rules you can read. Qwen2.5 1.5B was not good
+    enough (0.76 on the first task; 18 of 56 real callers marked spam). The default screening script is rules-only
+    today; these results decide what the model will be allowed to do.</p>
+
+  <h2 id="notes">Call notes (summaries)</h2>
+  <p>After a call, +PLUS AI writes a short summary: the gist, then the key points with any numbers, dates and
+    follow-ups. We compared summaries of the same calls by our models and by a commercial service's call notes.</p>
+  <div class="table"><table>
+    <thead><tr><th>On about 112 calls, without fine-tuning</th><th>Gemma 3n E2B</th><th>Gemma 3n E4B</th><th>Commercial service</th></tr></thead>
+    <tbody>
+      <tr><td>Summaries with an invented name, number or date</td><td>8.9%</td><td>7.1%</td><td>4.5%</td></tr>
+      <tr><td>Wrong speaker, role or call direction</td><td>26%</td><td>16%</td><td></td></tr>
+      <tr><td>Facts covered</td><td>86%</td><td>86%</td><td></td></tr>
+      <tr><td>Better / same / worse than the commercial notes (31 calls)</td><td>8 / 15 / 8</td><td>12 / 12 / 7</td><td></td></tr>
+    </tbody>
+  </table></div>
+  <p>Gemma 4 E2B came out like Gemma 3n E4B (12 / 12 / 7) at E2B's size and speed. Then the phone surprised us:</p>
+  <ul>
+    <li><strong>The phone corrupts digits the PC doesn't.</strong> On the phone's GPU, the same model wrote
+      "April 222" or "10:000 a.m.". The CPU backend on the phone was much better (calls with a wrong number: 3 of 41
+      against 9 on the GPU), at twice the time (about 20 s against 10 s per call).</li>
+    <li><strong>Number tags fixed it.</strong> Before the model sees the transcript, every number becomes a tag
+      ([N1], [N2]…). The model copies tags, never digits, and the numbers go back in exactly as they were said. Calls
+      with a wrong number fell from <strong>9 to 0 of 41</strong>, while covering about as many of the reference
+      notes' numbers (40 of 63, against 43 before). This is in Phone+ now.</li>
+    <li><strong>What didn't help:</strong> the model's built-in "thinking" (about 10 times slower and more wrong
+      numbers), giving the transcript as JSON (more wrong numbers, fewer facts), and a second "check your numbers"
+      pass, which helped on the PC but made things worse on the phone.</li>
+    <li><strong>Still open:</strong> the summary sometimes attributes a line to the wrong person. Part of that comes
+      from the transcript itself (echo between the two sides of a call). And the labels in our instructions ("the
+      owner", "Other") sometimes leak into the notes. Better instructions and fine-tuning are the next experiments.</li>
+  </ul>
+
+  <h2 id="search">Search over past calls</h2>
+  <p>Questions like "when did the dentist call about my appointment?" over a set of 40 test questions (right call first
+    / right call in the top 5):</p>
+  <div class="table"><table>
+    <thead><tr><th>Method</th><th>First</th><th>Top 5</th></tr></thead>
+    <tbody>
+      <tr><td>Plain full-text search with a small date and speaker parser</td><td>27</td><td>34</td></tr>
+      <tr><td>Gemma 3n E2B choosing search calls itself</td><td>13</td><td>19</td></tr>
+      <tr><td><strong>Gemma 4 E2B with constrained JSON and examples</strong></td><td><strong>30</strong></td><td><strong>33</strong></td></tr>
+      <tr><td>Gemma 4 E2B with native tool calls</td><td>26</td><td>30</td></tr>
+    </tbody>
+  </table></div>
+  <p>Gemma 4 E2B was the first model to beat plain search, when its answers are forced into a fixed JSON shape. Earlier
+    models invented numbers and dates in their search requests, so plain search stays underneath as the
+    fallback.</p>
+
+  <h2 id="sms">SMS spam detection</h2>
+  <p>For a future messaging plus-up: about 1,900 texts from numbers that aren't contacts, each labelled scam, spam,
+    promotion, transactional or personal. The models learned from 1,443 of them and were tested on the other 484 (56
+    spam, 145 personal), never on a template they had seen.</p>
+  <div class="table"><table>
+    <thead><tr><th>Classifier</th><th>Spam F1</th><th>False alarms</th><th>Personal texts flagged</th></tr></thead>
+    <tbody>
+      <tr><td><strong>2 of 4 agree</strong> (TF-IDF, DistilRoBERTa, MiniLM, fine-tuned Gemma)</td><td><strong>0.89</strong></td><td>2</td><td>0</td></tr>
+      <tr><td>2 of 3 small models agree</td><td>0.87</td><td>2</td><td>0</td></tr>
+      <tr><td>DistilRoBERTa, fine-tuned</td><td>0.85</td><td>4</td><td>1</td></tr>
+      <tr><td>TF-IDF + logistic regression (trains in 5 seconds, a few MB)</td><td>0.84</td><td>5</td><td>3</td></tr>
+      <tr><td>MiniLM-L12, fine-tuned (phone-sized)</td><td>0.82</td><td>4</td><td>1</td></tr>
+      <tr><td>Naive Bayes (classic Bayesian filter)</td><td>0.80</td><td>13</td><td>11</td></tr>
+      <tr><td>Gemma 4 E2B, LoRA fine-tuned</td><td>0.74</td><td>9</td><td>2</td></tr>
+      <tr><td>TF-IDF <em>and</em> Gemma both say spam</td><td>0.70</td><td><strong>0</strong></td><td>0</td></tr>
+      <tr><td>Gemma 4 E2B, no fine-tuning, on the phone</td><td>0.56</td><td>23</td><td>5</td></tr>
+    </tbody>
+  </table></div>
+  <ul>
+    <li><strong>The user's own labels matter more than the model.</strong> Trained only on a well-known public SMS
+      spam collection, the filter scored 0.11 with 200 false alarms; on texts invented by a model, 0.44. Today's spam
+      doesn't look like those. A filter has to keep learning on the phone from what you mark.</li>
+    <li><strong>The language model is not the spam filter by itself.</strong> Fine-tuning lifted Gemma from 0.56 to
+      0.74, still below a classifier that trains in seconds. But as one vote among several it helps, and when a small
+      model and Gemma agree there were no false alarms at all: those texts could be filed away automatically, and texts
+      only one of them flags marked "possible spam".</li>
+    <li><strong>The hardest scams read like personal texts</strong> ("hi, is this…?"). They need signals beyond the
+      words: an unknown number, no earlier conversation, a first contact.</li>
+  </ul>
+
+  <h2 id="next">What's next</h2>
+  <ul>
+    <li>Fine-tuning Gemma 4 E2B (LoRA adapters) for call notes and short labels, and comparing it with better system
+      prompts alone.</li>
+    <li>Trying Gemma 4 E4B on phones with 16 GB of RAM, and the Pixel's NPU where Google's runtime supports it.</li>
+    <li>A spam filter that learns on the phone, with the language model as a second opinion and an explanation of why a
+      text looks like a scam.</li>
+    <li>Testing everything on more people's data.</li>
+  </ul>
+
+  <h2 id="data">Have data to share?</h2>
+  <p>The biggest limit of these experiments is that they use one person's calls and messages. If you have lots of
+    calls or messages that are already classified (spam or not, a summary, an answer to a question) and you are willing
+    to share them, please get in contact. We would use them only to test and train these models, keep them private,
+    and publish only aggregate results like the ones on this page.</p>
+  <p><img src="../contact.png" width="330" height="44" alt="Contact email address (shown as an image)" class="contact"><br>
+    This address is changed from time to time to keep spam down.</p>
+
+  <footer>+PLUS for GrapheneOS is an independent project, not affiliated with or endorsed by the GrapheneOS project.
+    Gemma is a model family by Google, used under its Apache-2.0 licence. <a href="../">Back to +PLUS</a>.</footer>
+</main>
+</body>
+</html>
