@@ -2,7 +2,9 @@
 
 The website of +PLUS for GrapheneOS: plus-ups for GrapheneOS. https://plus-for-grapheneos.github.io/
 
-- `index.html`, `icon.svg`: the landing page.
+- `index.html`, `site.css`, `icon.svg`: the landing page: what +PLUS is, its security design and checks, plus-ups,
+  call screening, setup and privacy.
+- `script/`: the screening script syntax for Phone+ (script API level 1).
 - `install/`: the setup page (test version). It builds GrapheneOS with +PLUS for a phone, signed with a key only the
   owner holds, and loads it over USB from desktop Chrome or Edge. Everything runs in the browser; nothing is uploaded.
   - `install/tools/avbroot.wasm`, `install/tools/afsr.wasm`: avbroot 3.37.0 and afsr 2.0.0 by Andrew Gunnerson

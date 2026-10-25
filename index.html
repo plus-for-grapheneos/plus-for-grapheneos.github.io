@@ -4,37 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>+PLUS for GrapheneOS</title>
-<meta name="description" content="Plus-ups for GrapheneOS: optional add-ons, built into your phone's updates and signed with your own key.">
+<meta name="description" content="Plus-ups for GrapheneOS: a self-signing, automatic update engine that builds GrapheneOS's own updates with the add-ons you choose and signs them with your own key, on your phone.">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon-512.png">
-<style>
-  :root {
-    color-scheme: light dark;
-    --bg: light-dark(#f8fafc, #0b1220);
-    --fg: light-dark(#0f172a, #e2e8f0);
-    --muted: light-dark(#475569, #94a3b8);
-    --accent: light-dark(#1d4ed8, #93c5fd);
-  }
-  body {
-    margin: 0; background: var(--bg); color: var(--fg);
-    font: 1.0625rem/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  }
-  main { max-width: 40rem; margin: 0 auto; padding: 4rem 1rem 3rem; }
-  header { display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem; }
-  header img { width: 3.5rem; height: 3.5rem; }
-  h1 { font-size: 1.75rem; line-height: 1.2; margin: 0; }
-  .tagline { margin: .25rem 0 0; color: var(--muted); }
-  h2 { font-size: 1.25rem; margin: 2rem 0 .5rem; }
-  a { color: var(--accent); }
-  ul.links { list-style: none; padding: 0; margin: 2rem 0; display: grid; gap: .75rem; }
-  ul.links a { font-weight: 600; }
-  img.contact { display: block; max-width: 100%; height: auto; margin-bottom: .25rem; }
-  footer { margin-top: 3rem; font-size: .875rem; color: var(--muted); }
-</style>
+<link rel="stylesheet" href="site.css">
 </head>
 <body>
 <main>
-  <header>
+  <header class="top">
     <img src="icon.svg" alt="">
     <div>
       <h1>+PLUS for GrapheneOS</h1>
@@ -42,35 +19,232 @@
     </div>
   </header>
 
-  <p>+PLUS adds optional extras to a GrapheneOS phone, such as a phone app with call screening and on-device AI,
-    while keeping verified boot and automatic updates.</p>
-  <p>You hold the signing key. The phone builds each official GrapheneOS update with your chosen add-ons and signs it
-    with your own key. Without add-ons, +PLUS simply keeps GrapheneOS up to date.</p>
-  <h2>The first plus-up: call screening</h2>
-  <p>Our first plus-up for GrapheneOS is call screening, a much-requested feature that the project's author really
-    wanted. It is highly customizable and runs entirely on the phone, with on-device search, transcripts and call
-    notes. It is in the catalog now (test version): choose it in the +PLUS store on the phone.</p>
+  <nav class="toc" aria-label="On this page">
+    <a href="#what">What it is</a>
+    <a href="#security">Security</a>
+    <a href="#checks">The checks</a>
+    <a href="#plus-ups">Plus-ups</a>
+    <a href="#call-screening">Call screening</a>
+    <a href="#setup">Setup</a>
+    <a href="#privacy">Privacy</a>
+    <a href="#script">Your own script</a>
+    <a href="script/">Script syntax</a>
+  </nav>
 
-  <h2>Setting up a phone</h2>
-  <p>To keep the first setup simple, the whole job of patching a GrapheneOS image with +PLUS, the re-signing and
-    update tool, happens in your browser. It takes much longer than dedicated computer tools, but it is foolproof and
-    automatic, and nothing is sent anywhere.</p>
-  <p>You can back up your own signing key for special recovery tasks, if you ever need it. Encrypt it with a hardware
-    token, keep it in a password manager, or put it in a safety deposit box: how you keep it is up to you.</p>
-
-  <p>This is an early test version. More about the project will follow.</p>
+  <p class="lead">+PLUS is a self-signing, automatic update engine for GrapheneOS. On your phone it takes each official
+    GrapheneOS update, adds the plus-ups you chose, signs the result with a key only you hold, and installs it. Your
+    phone then trusts your key, not anyone else's.</p>
 
   <ul class="links">
-    <li><a href="install/">Set up a phone</a> (test version; desktop Chrome or Edge)</li>
-    <li><a href="catalog/">Add-on catalog</a></li>
+    <li><a href="install/">Set up a phone</a> (desktop Chrome or Edge)</li>
+    <li><a href="catalog/">Plus-up catalog</a></li>
+    <li><a href="script/">Screening script syntax</a></li>
     <li><a href="https://github.com/plus-for-grapheneos">Source on GitHub</a></li>
   </ul>
 
-  <h2>Contact</h2>
+  <p class="note">This is an early test version. The catalog is signed with a staging key, not a release key.</p>
+
+  <h2 id="what">What +PLUS is</h2>
+  <p>GrapheneOS phones update themselves with images signed by GrapheneOS. Adding anything to the operating system
+    breaks that chain: the phone would no longer accept GrapheneOS's updates, and you would have to rebuild every
+    release on a computer.</p>
+  <p>+PLUS takes the place of GrapheneOS's own update app and keeps the phone updating by itself:</p>
+  <ol>
+    <li>Every 6 hours it checks GrapheneOS's release server for your phone model.</li>
+    <li>It downloads the official update and checks GrapheneOS's signature on it.</li>
+    <li>It unpacks the system images, adds +PLUS and the plus-ups you chose, packs them again, and signs the whole
+      update with your key, all on the phone.</li>
+    <li>Android's own A/B updater writes it to the inactive half of the phone's storage, so the image you are running
+      is never touched while the new one is prepared.</li>
+    <li>You restart when it suits you.</li>
+  </ol>
+  <p>It runs on its own on Wi-Fi while the phone charges. On mobile data it shows "Update available" with an
+    <strong>Update now</strong> button instead. With no plus-ups chosen, or no catalog at all, +PLUS simply keeps
+    GrapheneOS up to date, signed with your key.</p>
+
+  <h2 id="security">The security concept</h2>
+  <p>A GrapheneOS phone with a locked bootloader only starts system images signed with a key it trusts. Normally that
+    is GrapheneOS's key. +PLUS sets it to <strong>your</strong> key:</p>
+  <ul>
+    <li><strong>Your key is created on your side.</strong> The setup page creates it in your browser. It is never
+      uploaded, and you keep a backup: printed, in a password manager or encrypted with a hardware token. How you
+      keep it is up to you.</li>
+    <li><strong>The phone's bootloader is locked again with your key.</strong> Verified boot then accepts only images
+      signed with it, and checks every system partition as it is read. At startup the phone shows that it runs an
+      operating system signed with a key other than Google's, with your key's fingerprint.</li>
+    <li><strong>On the phone, the key lives in Android's hardware-backed keystore.</strong> It can sign only within 30
+      minutes of unlocking the phone with your PIN, password or fingerprint, so every update waits for you once.</li>
+    <li><strong>Installing and activating are separate.</strong> A new image goes to the inactive slot and is not used
+      until you tap <strong>Restart to finish</strong> on an unlocked phone, after a list of what changed. Restarting,
+      a crash or holding the power button all start the image you already had.</li>
+  </ul>
+  <p>Someone who holds your locked phone therefore can't activate an image, even with a valid key, because they can't
+    unlock the phone.</p>
+  <p class="note">Your key backup is as powerful as the key itself: whoever has it can sign updates your phone accepts.
+    Keep it offline. Coercion and malware on an already unlocked phone are not prevented by any update system; read
+    the change list before you tap Restart to finish.</p>
+
+  <h2 id="checks">Where the checks are</h2>
+  <div class="table">
+  <table>
+    <thead><tr><th>Step</th><th>What is checked</th><th>What it stops</th></tr></thead>
+    <tbody>
+      <tr><td>First setup (in the browser)</td>
+        <td>The GrapheneOS update file you pick is checked against GrapheneOS's published keys for your model. The
+          firmware the page gets from GrapheneOS's server must match, byte for byte, the firmware in that signed
+          file. The phone's model and storage layout must match the build.</td>
+        <td>A modified or wrong GrapheneOS file; firmware from anywhere else; loading onto the wrong phone.</td></tr>
+      <tr><td>Each update (on the phone)</td>
+        <td>The release must be for your model and channel, and newer than what you run. The update file's signature
+          is checked against GrapheneOS's keys built into +PLUS.</td>
+        <td>Old releases being pushed back onto the phone; images that didn't come from GrapheneOS.</td></tr>
+      <tr><td>The catalog</td>
+        <td>The catalog link names the catalog's key by its SHA-256. The phone checks that key, the signature, an
+          expiry date (28 days), and that the catalog is not older than the last one it saw.</td>
+        <td>A swapped catalog, a modified list, or an old list replayed to hold back fixes.</td></tr>
+      <tr><td>Each plus-up</td>
+        <td>Its file hash, package name and version must match the signed catalog. Its signing certificate is
+          remembered the first time and must never change.</td>
+        <td>A modified app, or an app replaced by one from someone else.</td></tr>
+      <tr><td>Signing</td>
+        <td>Your key signs only within 30 minutes of an unlock.</td>
+        <td>Images signed in the background on a phone nobody unlocked.</td></tr>
+      <tr><td>Activation</td>
+        <td>Restart to finish, from an unlocked phone, after the list of changes.</td>
+        <td>Someone holding your locked phone starting a new image.</td></tr>
+      <tr><td>Every start</td>
+        <td>Verified boot with your key checks the boot images and, block by block, the system partitions.</td>
+        <td>Changes made to the phone's storage outside the update path.</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>If the catalog can't be reached or fails a check, +PLUS still installs GrapheneOS's update and keeps the plus-ups
+    it already has. A catalog problem never holds back a GrapheneOS security update.</p>
+
+  <h2 id="plus-ups">How plus-ups are added</h2>
+  <p>A plus-up is an app, or a group of apps, built into the operating system image rather than installed on top. That
+    is what lets it do things a normal app can't, such as answering a phone call.</p>
+  <ol>
+    <li><strong>The catalog</strong> is a signed list on this site. It names each plus-up's apps with their version,
+      file hash, signing certificate and the system permissions they need.</li>
+    <li><strong>You choose</strong> plus-ups in the +PLUS store on the phone.</li>
+    <li><strong>On the next build</strong> +PLUS downloads the chosen apps, checks them against the catalog, and puts
+      them into the image (<code>/product/priv-app</code> for apps that need system permissions) together with the
+      permission list Android requires for them. Then it signs the image with your key.</li>
+    <li><strong>Updates to a plus-up</strong> arrive the same way: as a new image. GrapheneOS doesn't let apps replace
+      system apps on their own, so nothing bypasses your key.</li>
+    <li><strong>Removing a plus-up</strong> happens only when you ask for it, because Android deletes a removed system
+      app's data.</li>
+  </ol>
+  <p>Because the phone builds the image itself, plus-ups can be offered for every GrapheneOS release on every
+    supported Pixel without anyone redistributing GrapheneOS.</p>
+
+  <h2 id="call-screening">The first plus-up: call screening</h2>
+  <p>Our first plus-up is call screening, a much-requested feature that the project's author really wanted. It is
+    highly customizable and runs entirely on the phone, with on-device search, transcripts and call notes. It is in the
+    catalog now as a test version: choose <strong>Phone+</strong> in the +PLUS store.</p>
+  <p>Phone+ is GrapheneOS's phone app with a call assistant added:</p>
+  <ul>
+    <li><strong>Screening.</strong> The assistant answers callers who aren't in your contacts, asks who's calling and
+      why, and shows you the call with a live transcript. You answer, ask a follow-up, put the caller on hold, type a
+      reply that the assistant reads out, ask them to text you, or decline. Robocalls and silent calls end by
+      themselves; a caller who asks for money, codes or passwords is shown with a warning.</li>
+    <li><strong>Messages instead of voicemail.</strong> Calls you don't pick up can leave a message with the
+      assistant, transcribed on the phone.</li>
+    <li><strong>Call recording and transcripts</strong> of both sides, on the phone, with automatic recording rules
+      and a recording notice.</li>
+    <li><strong>Call notes and search</strong> with the optional +PLUS AI plus-up: a summary after each call and
+      questions about past calls, answered by a language model on the phone.</li>
+    <li><strong>Your data stays yours:</strong> screening history, transcripts and audio can be exported to one file,
+      deleted, or kept for a period you choose.</li>
+  </ul>
+
+  <h2 id="setup">Setting up a phone</h2>
+  <h3>1. Load the phone</h3>
+  <p>To keep the first setup simple, the whole job of patching a GrapheneOS image with +PLUS, the re-signing and
+    update tool, happens in your browser. It takes much longer than dedicated computer tools, but it is foolproof and
+    automatic, and nothing is sent anywhere. The <a href="install/">setup page</a> loads the phone the way
+    GrapheneOS's own installer does, starting from the phone's original Android or from GrapheneOS.</p>
+  <ol>
+    <li>Pick the official GrapheneOS update file for your phone.</li>
+    <li>Create your key and save its backup. The page shows it as text, a QR code and a printable sheet.</li>
+    <li>Build the image (20 to 45 minutes), then connect the phone in its bootloader and load it. The page unlocks the
+      bootloader, writes everything, and locks it again with your key.</li>
+    <li>On the phone, go through GrapheneOS setup and set a PIN. Open +PLUS (Settings &gt; System &gt; System update),
+      tap Import your key and scan the QR code. Then turn OEM unlocking off again.</li>
+  </ol>
+  <p>You can back up your own signing key for special recovery tasks, if you ever need it: a repair image signed with
+    your key installs without unlocking the phone.</p>
+
+  <h3>2. Add call screening</h3>
+  <ol>
+    <li>In the +PLUS store, choose <strong>Phone+</strong>. The next update is built with it; tap
+      Restart to finish when it's ready.</li>
+    <li>Phone+ uses Google's speech engine for listening and speaking. In GrapheneOS, install sandboxed Google Play
+      from the App Store, then install <strong>Speech Services by Google</strong> from Play (package
+      <code>com.google.android.tts</code>, also listed as Speech Recognition &amp; Synthesis).</li>
+    <li>Open Phone+ &gt; Settings &gt; Call screening &gt; <strong>Setup</strong>. The checklist shows what is missing,
+      each with a button that fixes it:
+      <ul>
+        <li>Phone+ is your default phone app;</li>
+        <li>a speech recognizer is installed, may use the microphone, and can listen to calls;</li>
+        <li>offline English recognition is downloaded;</li>
+        <li>an English voice is installed for the assistant;</li>
+        <li>call audio works, and the screening script is loaded.</li>
+      </ul></li>
+    <li>Turn on <strong>Screen calls</strong> and pick which calls to screen: callers not in your contacts, only
+      private numbers, or only when you tap Screen call.</li>
+    <li>Optionally add the +PLUS AI plus-up and a model for call notes and search.</li>
+  </ol>
+
+  <h3>The settings</h3>
+  <ul>
+    <li><strong>Always ring:</strong> contacts, starred contacts, numbers you called recently, and a never-screen
+      list.</li>
+    <li><strong>When you don't answer:</strong> take messages instead of voicemail, and how long a call rings first
+      (shorter than your carrier's voicemail delay).</li>
+    <li><strong>Voice:</strong> the assistant uses the voice chosen in Android's text-to-speech settings.</li>
+    <li><strong>Transcripts and summaries:</strong> transcribe recordings, summarize calls with +PLUS AI.</li>
+    <li><strong>Your call data:</strong> export everything to one file.</li>
+    <li><strong>Advanced:</strong> the screening script and its options, saved replies, speech downloads, recording
+      format and automatic recording, how screened calls show in Recents, how long transcripts and audio are kept,
+      and diagnostics.</li>
+  </ul>
+
+  <h2 id="privacy">Privacy: everything on the phone</h2>
+  <p>Screening, recognition, the assistant's voice, transcripts, call notes and search all run on the phone. Phone+
+    sends nothing to us or to anyone else.</p>
+  <p>The speech engine comes from Google. Once it is set up, with offline English and a voice downloaded, we think
+    you can switch off its network access to prevent data leakage: in GrapheneOS, long-press Speech Services by
+    Google &gt; App info &gt; Permissions &gt; turn off <strong>Network</strong>. Do the same for Phone+ if you like;
+    it doesn't need the internet. Make a test call afterwards to check that screening still works, and switch
+    network access back on for a while when you want to download a new voice or language.</p>
+
+  <h2 id="script">Customizing the screening script</h2>
+  <p>What the assistant says and decides is a screening script: a small JavaScript program that Phone+ runs in a
+    sandbox. The built-in one covers most needs through its options, shown in Settings &gt; Call screening and under
+    Advanced: which calls to screen, your first name, the greeting, how many follow-up questions, how long the phone
+    rings for you, what happens when a caller asks for money or codes, and the message greeting.</p>
+  <p>To go further, write your own:</p>
+  <ol>
+    <li>Settings &gt; Call screening &gt; Advanced &gt; <strong>Script library</strong>. Open the default script and
+      choose View source to start from it.</li>
+    <li>Edit it on a computer. The <a href="script/">script syntax</a> page describes the handlers, the actions and
+      the limits.</li>
+    <li>In the Script library, choose <strong>Import script</strong>. Phone+ shows its name, version, author, API
+      level and SHA-256, and asks you to confirm with your screen lock.</li>
+    <li>Choose <strong>Run tests</strong> to run the script's own test calls, then <strong>Activate</strong>.</li>
+  </ol>
+  <p>A script can't reach the internet, your files or your contacts. It sees only the call it is screening and the
+    notes it saved itself, and it returns actions that Phone+ checks before running them. If a script keeps failing, Phone+ switches back to the default
+    script and tells you. <strong>Reset to default</strong> is always there.</p>
+
+  <h2 id="contact">Contact</h2>
   <p><img src="contact.png" width="330" height="44" alt="Contact email address (shown as an image)" class="contact"><br>
     This address is changed from time to time to keep spam down.</p>
 
-  <footer>+PLUS for GrapheneOS is an independent project, not affiliated with or endorsed by the GrapheneOS project.</footer>
+  <footer>+PLUS for GrapheneOS is an independent project, not affiliated with or endorsed by the GrapheneOS project.
+    Source: <a href="https://github.com/plus-for-grapheneos">github.com/plus-for-grapheneos</a>.</footer>
 </main>
 </body>
 </html>

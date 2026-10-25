@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Screening script syntax</title>
+<meta name="description" content="How to write a call screening script for Phone+, the first +PLUS plus-up: handlers, actions, options, prompts, tests and limits (script API level 1).">
+<link rel="icon" href="../icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../site.css">
+</head>
+<body>
+<main>
+  <header class="top">
+    <img src="../icon.svg" alt="">
+    <div>
+      <h1>Screening script syntax</h1>
+      <p class="tagline">Phone+ call screening, script API level 1</p>
+    </div>
+  </header>
+
+  <nav class="toc" aria-label="On this page">
+    <a href="../">+PLUS home</a>
+    <a href="#shape">Shape of a script</a>
+    <a href="#handlers">Handlers</a>
+    <a href="#call">The call</a>
+    <a href="#actions">Actions</a>
+    <a href="#options">Options and prompts</a>
+    <a href="#helpers">Helpers</a>
+    <a href="#tests">Tests</a>
+    <a href="#limits">Limits</a>
+    <a href="#example">Example</a>
+  </nav>
+
+  <p class="lead">A screening script decides what happens to a call and what the assistant says. Phone+ calls the
+    script's handlers as the call goes on; each handler returns <strong>actions</strong>, which Phone+ checks and then
+    carries out. The script never touches the call, the microphone or the screen directly.</p>
+  <p>Scripts are plain JavaScript (ES5 with a few later features, run by Mozilla Rhino). Start from the built-in script:
+    Settings &gt; Call screening &gt; Advanced &gt; Script library &gt; Default screening &gt; View source.</p>
+
+  <p class="note">The sandbox: no network, files or contacts; <code>eval</code> and <code>Function</code> are disabled;
+    <code>Date.now()</code> and <code>Math.random()</code> are fixed by Phone+ for each event, so a call can be replayed
+    exactly from its log.</p>
+
+  <h2 id="shape">Shape of a script</h2>
+<pre><code>var meta = { id: "my-screening", name: "My screening", version: "1.0.0", api: 1,
+             author: "You", description: "One line about what it does." };
+var options = [ /* settings shown in Phone+, see Options */ ];
+var prompts = { hello: "Hello? Are you there?" };   // fixed lines, synthesized ahead of time
+var tests = [ /* test calls, see Tests */ ];
+
+function on_incoming(ev, call, state, config) { return [screen()]; }
+function on_start(ev, call, state, config) { /* ... */ }
+// ...more handlers</code></pre>
+  <p>Every handler gets the same four arguments: <code>ev</code> (this event), <code>call</code> (a snapshot of the
+    call), <code>state</code> (what your script stored last time) and <code>config</code> (the values of your options).
+    It returns either an array of actions, or <code>result(actions, state)</code> to also save new state. State is a
+    plain object, kept for the length of the call.</p>
+
+  <h2 id="handlers">Handlers</h2>
+  <p>Define only the handlers you need. A missing handler does nothing.</p>
+  <div class="table"><table>
+    <thead><tr><th>Handler</th><th>When</th><th><code>ev</code> fields</th><th>May return</th></tr></thead>
+    <tbody>
+      <tr><td><code>on_incoming</code></td><td>The phone starts ringing.</td><td>—</td>
+        <td>Exactly one of <code>screen()</code>, <code>ring()</code>, <code>silence()</code>,
+          <code>reject_incoming()</code> (plus <code>log</code>).</td></tr>
+      <tr><td><code>on_start</code></td><td>The assistant has answered.</td>
+        <td><code>origin</code>: <code>auto</code>, <code>manual</code> (you tapped Screen call) or <code>unanswered</code>
+          (you didn't pick up); <code>ask</code>: <code>"urgent"</code> when you tapped Urgent? for a contact;
+          <code>recovered</code>, <code>disclosed</code> after Phone+ restarted mid-call.</td>
+        <td>Conversation actions.</td></tr>
+      <tr><td><code>on_caller_said</code></td><td>The caller finished a sentence.</td><td><code>text</code></td>
+        <td>Conversation actions.</td></tr>
+      <tr><td><code>on_silence</code></td><td>An <code>ask</code> or <code>listen</code> timed out.</td><td>—</td>
+        <td>Conversation actions.</td></tr>
+      <tr><td><code>on_user_action</code></td><td>You tapped a chip, or sent a typed reply.</td>
+        <td><code>id</code> (the chip's or input's id), <code>value</code> (typed text)</td><td>Conversation actions.</td></tr>
+      <tr><td><code>on_user_typing</code></td><td>You started or stopped typing a reply.</td><td><code>active</code></td>
+        <td>Conversation actions.</td></tr>
+      <tr><td><code>on_user_unavailable</code></td><td>You didn't answer in time after <code>present</code> or
+        <code>connect</code>.</td><td><code>after</code> (<code>present</code> or <code>connect</code>),
+        <code>waited_ms</code></td><td>Conversation actions.</td></tr>
+      <tr><td><code>on_timer</code></td><td>A timer you set ran out.</td><td><code>name</code></td><td>Conversation actions.</td></tr>
+      <tr><td><code>on_assistant_result</code></td><td>An on-device language model answered.</td>
+        <td><code>req_id</code>, <code>ok</code>, <code>text</code>, <code>json</code>, <code>error</code>,
+          <code>timing_ms</code></td><td>Conversation actions.</td></tr>
+      <tr><td><code>on_interrupted</code></td><td>You took or placed another call.</td>
+        <td><code>reason</code> (e.g. <code>outgoing_call</code>)</td>
+        <td>One closing <code>end_call</code>, and records.</td></tr>
+      <tr><td><code>on_end</code></td><td>The call is over.</td><td><code>reason</code></td>
+        <td>Records only: <code>summary</code>, <code>tag</code>, <code>remember</code>, <code>store</code>,
+          <code>log</code>.</td></tr>
+    </tbody>
+  </table></div>
+  <p>After an ending action (<code>connect</code>, <code>take_message</code>, <code>end_call</code>) a result may
+    contain only records.</p>
+
+  <h2 id="call">The call</h2>
+  <div class="table"><table>
+    <thead><tr><th>Field</th><th>What it is</th></tr></thead>
+    <tbody>
+      <tr><td><code>number</code></td><td>The caller's number, or <code>null</code> when withheld.</td></tr>
+      <tr><td><code>presentation</code></td><td><code>allowed</code>, or how the number was hidden (e.g.
+        <code>restricted</code>).</td></tr>
+      <tr><td><code>network_name</code></td><td>The caller name your carrier sent, if any.</td></tr>
+      <tr><td><code>contact</code></td><td><code>{ name, first_name, starred }</code> for a contact, else
+        <code>null</code>.</td></tr>
+      <tr><td><code>line</code></td><td>Your SIM the call came in on: <code>{ subscription_id, slot, label }</code>.</td></tr>
+      <tr><td><code>origin</code></td><td><code>auto</code>, <code>manual</code> or <code>unanswered</code>.</td></tr>
+      <tr><td><code>transcript</code></td><td>The call so far: <code>[{ speaker, text, t_ms, segment }]</code>.</td></tr>
+      <tr><td><code>identity</code></td><td>What earlier calls from this number established (name, company…).</td></tr>
+      <tr><td><code>memory</code></td><td>What your script saved with <code>store</code>:
+        <code>{ number: {…}, global: {…} }</code>.</td></tr>
+      <tr><td><code>capabilities</code></td><td><code>{ assistant, tts_ready, api }</code>. <code>assistant</code> is
+        <code>null</code> without +PLUS AI and a model.</td></tr>
+      <tr><td><code>local</code></td><td><code>{ date, weekday, hour, timezone }</code> on your phone.</td></tr>
+      <tr><td><code>questions</code></td><td>How many questions the assistant has asked.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2 id="actions">Actions</h2>
+  <p>Actions are plain objects. The standard library builds them for you:</p>
+  <div class="table"><table>
+    <thead><tr><th>Builder</th><th>Does</th></tr></thead>
+    <tbody>
+      <tr><td colspan="2"><strong>The decision (only in <code>on_incoming</code>)</strong></td></tr>
+      <tr><td><code>screen()</code></td><td>The assistant answers.</td></tr>
+      <tr><td><code>ring()</code></td><td>Ring as usual.</td></tr>
+      <tr><td><code>silence()</code></td><td>Let the call through without ringing; you can still answer it.</td></tr>
+      <tr><td><code>reject_incoming()</code></td><td>Decline the call.</td></tr>
+      <tr><td colspan="2"><strong>Speaking and listening</strong></td></tr>
+      <tr><td><code>say(x)</code></td><td>Say a line. <code>x</code> is text, <code>{ prompt: "key" }</code>, or
+        <code>{ text, disclosure: true }</code> for the line that tells the caller the call is recorded.</td></tr>
+      <tr><td><code>ask(x, timeout_ms)</code></td><td>Say a line and listen for the answer (default 8 s).</td></tr>
+      <tr><td><code>listen(timeout_ms)</code></td><td>Listen without speaking.</td></tr>
+      <tr><td colspan="2"><strong>What you see</strong></td></tr>
+      <tr><td><code>present(card, wait_ms)</code></td><td>Show you the call and ring; <code>on_user_unavailable</code>
+        follows if you don't answer within <code>wait_ms</code> (default 25 s).</td></tr>
+      <tr><td><code>update(card)</code></td><td>Change the card while it is shown.</td></tr>
+      <tr><td><code>chips([chip(id, label, style, notify)…])</code></td><td>Buttons for you; style
+        <code>normal</code>, <code>primary</code> or <code>warning</code>.</td></tr>
+      <tr><td><code>prompt_input(id, hint)</code>, <code>clear_input()</code></td><td>A box to type a reply; it
+        arrives as <code>on_user_action</code> with <code>ev.value</code>.</td></tr>
+      <tr><td><code>status(text)</code></td><td>A short status line on the screening screen (up to 80 characters).</td></tr>
+      <tr><td colspan="2"><strong>Endings</strong></td></tr>
+      <tr><td><code>connect(wait_ms)</code></td><td>Ring you to take the call while the caller waits; say a line
+        first if you want them to hear one.</td></tr>
+      <tr><td><code>take_message(x, max_ms, beep)</code></td><td>Say <code>x</code>, then record a message.</td></tr>
+      <tr><td><code>end_call(reason, closing)</code></td><td>Say an optional closing line and hang up.</td></tr>
+      <tr><td colspan="2"><strong>Records</strong></td></tr>
+      <tr><td><code>summary(line, tags)</code></td><td>The one-line description in Recents.</td></tr>
+      <tr><td><code>tag("robocall", …)</code></td><td>Labels on the call (<code>a-z 0-9 _</code>).</td></tr>
+      <tr><td><code>remember(fields, opts)</code></td><td>What you learned, e.g. <code>{ name, org, reason }</code>,
+        with an optional <code>confidence</code>.</td></tr>
+      <tr><td><code>store(scope, key, value)</code></td><td>Save data for later calls: scope <code>number</code> or
+        <code>global</code>; read back from <code>call.memory</code>.</td></tr>
+      <tr><td><code>log(level, msg)</code></td><td>A line in the call's diagnostics.</td></tr>
+      <tr><td colspan="2"><strong>Timers and the assistant</strong></td></tr>
+      <tr><td><code>set_timer(name, ms)</code>, <code>cancel_timer(name)</code></td><td>At most 4 timers, 60 s each.</td></tr>
+      <tr><td><code>assistant_generate({ req_id, input, prefix, json_schema, max_tokens, temperature })</code></td>
+        <td>Ask the on-device model (when <code>call.capabilities.assistant</code> is set); the answer arrives in
+          <code>on_assistant_result</code>.</td></tr>
+      <tr><td><code>assistant_warm(prefix)</code></td><td>Prepare the model with a prompt prefix ahead of time.</td></tr>
+    </tbody>
+  </table></div>
+  <p>A <strong>card</strong> is <code>{ title, subtitle, fields: [{ label, value }], caution, alert }</code>: the title
+    (up to 60 characters) is who's calling, up to 8 fields hold what was said, and <code>caution</code> shows a
+    warning.</p>
+  <p>Phone+ checks every action. A malformed one is dropped and reported in the call's diagnostics; the rest still
+    run.</p>
+
+  <h2 id="options">Options and prompts</h2>
+  <p><code>options</code> become settings in Phone+. Their values reach every handler as <code>config</code>:</p>
+<pre><code>var options = [
+  { key: "mode", type: "choice", label: "Which calls to screen", promoted: true, default: "unknown",
+    summary: "These calls are answered by the assistant first.",
+    choices: [["unknown", "Callers not in your contacts"], ["withheld", "Only private numbers"]] },
+  { key: "owner_name", type: "text", label: "Your first name", maxLength: 40, default: "" },
+  { key: "wait_s", type: "number", label: "Ring me for", min: 10, max: 45, default: 25 },
+  { key: "polite", type: "bool", label: "Thank every caller", default: true, advanced: true }
+];</code></pre>
+  <p>Types are <code>choice</code>, <code>text</code>, <code>number</code> and <code>bool</code>.
+    <code>promoted</code> options appear on the main Call screening settings screen, <code>advanced</code> ones
+    under Advanced.</p>
+  <p><code>prompts</code> are fixed lines, up to 32, synthesized once when the script is activated so the caller never
+    waits for them: use them with <code>say({ prompt: "hello" })</code>. Lines with changing text are spoken as they
+    come.</p>
+
+  <h2 id="helpers">Helpers</h2>
+  <div class="table"><table>
+    <thead><tr><th>Function</th><th>Returns</th></tr></thead>
+    <tbody>
+      <tr><td><code>norm(s)</code></td><td>Lower case, punctuation removed, single spaces: what lexicons match against.</td></tr>
+      <tr><td><code>words(s)</code></td><td>The words of <code>norm(s)</code>.</td></tr>
+      <tr><td><code>matchAny(lexicon, text)</code></td><td>The first phrase or regular expression of the list found in
+        the text, or <code>null</code>.</td></tr>
+      <tr><td><code>replyClass(text, { field, yesNo })</code></td><td><code>"repeat"</code> ("Sorry, what?"),
+        <code>"presence"</code> ("Yes, I'm here"), <code>"refusal"</code> ("I'd rather not say") or
+        <code>"answer"</code>.</td></tr>
+      <tr><td><code>isRepeatRequest</code>, <code>isPresenceReply</code>, <code>isRefusal</code></td><td>The single
+        tests behind <code>replyClass</code>.</td></tr>
+      <tr><td><code>clip(s, n)</code></td><td>The text cut to <code>n</code> characters with an ellipsis.</td></tr>
+      <tr><td><code>fill(template, values)</code></td><td><code>"Hi {name}"</code> with the values filled in.</td></tr>
+      <tr><td><code>result(actions, state)</code></td><td>A handler's result with new state.</td></tr>
+      <tr><td><code>assert(cond, msg)</code></td><td>Throws when <code>cond</code> is false (for tests).</td></tr>
+    </tbody>
+  </table></div>
+  <p>Any of these can be replaced by defining a function with the same name in your script.</p>
+
+  <h2 id="tests">Tests</h2>
+  <p><code>tests</code> are simulated calls; Script library &gt; Run tests plays them through your handlers and
+    reports each result:</p>
+<pre><code>var tests = [
+  { name: "A dentist's office is shown to you",
+    caller: ["Hi, this is Maria from Bright Smile Dental.", "I'm calling to reschedule your cleaning."],
+    expect: { decision: "present", card: "Bright Smile Dental", caution: false } },
+  { name: "Manual mode rings every call", config: { mode: "manual" }, expect: { decision: "ring" } },
+  { name: "Hold keeps the caller, then a message is taken",
+    caller: ["Hi, this is Maria from Bright Smile Dental."],
+    user: { chip: "hold" }, expect: { outcome: "message", bot_says: "Thanks for holding" } }
+];</code></pre>
+  <p>A test can set <code>config</code>, <code>call</code> (e.g. a contact or a withheld number), <code>origin</code>,
+    <code>ask</code>, the caller's lines (<code>null</code> is a silence) and what you do (<code>user</code>:
+    <code>"answer"</code>, <code>{ chip: "id" }</code> or <code>{ typing: true }</code>). <code>expect</code> can check
+    <code>decision</code>, <code>outcome</code>, <code>card</code>, <code>card_lacks</code>, <code>caution</code>,
+    <code>tags</code>, <code>bot_says</code> and <code>max_questions</code>. Up to 64 tests.</p>
+
+  <h2 id="limits">Limits</h2>
+  <div class="table"><table>
+    <thead><tr><th>Limit</th><th>Value</th></tr></thead>
+    <tbody>
+      <tr><td>Script size</td><td>256 KB</td></tr>
+      <tr><td>Time per handler</td><td>300 ms (800 ms for <code>on_incoming</code>, 1 s to load)</td></tr>
+      <tr><td>State</td><td>16 KB; saved data (<code>store</code>): 64 KB, 16 KB per value</td></tr>
+      <tr><td>Actions</td><td>16 per result, 200 per call</td></tr>
+      <tr><td>Lines spoken</td><td>40 per call, each up to 500 characters</td></tr>
+      <tr><td>Model requests</td><td>10 per call</td></tr>
+      <tr><td>Chips</td><td>8, labels up to 24 characters</td></tr>
+      <tr><td>Listening</td><td>1 to 20 s per <code>ask</code> or <code>listen</code></td></tr>
+      <tr><td>Waiting for you</td><td>5 to 60 s per <code>present</code> or <code>connect</code></td></tr>
+      <tr><td>Messages</td><td>5 to 120 s</td></tr>
+      <tr><td>Options, prompts</td><td>24 options, 32 prompts</td></tr>
+    </tbody>
+  </table></div>
+  <p>A handler that throws, runs too long or returns something unusable counts as a failure. If the active script
+    keeps failing, Phone+ goes back to the default script and tells you.</p>
+
+  <h2 id="example">A complete small script</h2>
+  <p>It screens unknown callers, asks once who's calling, shows you the answer, and takes a message if you don't pick
+    up.</p>
+<pre><code>var meta = { id: "small", name: "Small screening", version: "1.0.0", api: 1,
+             author: "You", description: "Ask once, show me, else take a message." };
+var options = [
+  { key: "wait_s", type: "number", label: "Ring me for", min: 10, max: 45, default: 20 }
+];
+var prompts = {
+  greeting: "Hi, this is an automated call assistant, and this call is recorded. Who's calling, and why?",
+  message: "They can't come to the phone. Please leave a message after the tone."
+};
+
+function on_incoming(ev, call, state, config) {
+  return [call.contact ? ring() : screen()];
+}
+
+function on_start(ev, call, state, config) {
+  if (ev.origin === "unanswered") return [take_message({ prompt: "message" }, 60000)];
+  return [ask({ prompt: "greeting", disclosure: true }, 8000), status("Listening")];
+}
+
+function on_caller_said(ev, call, state, config) {
+  if (replyClass(ev.text) === "repeat") return [ask({ prompt: "greeting" }, 8000)];
+  var card = { title: clip(ev.text, 60), fields: [{ label: "Said", value: clip(ev.text, 120) }] };
+  return result([present(card, config.wait_s * 1000)], { said: ev.text });
+}
+
+function on_silence(ev, call, state, config) {
+  return [end_call("silent", "Sorry, I can't hear anyone. Goodbye.")];
+}
+
+function on_user_unavailable(ev, call, state, config) {
+  return [take_message({ prompt: "message" }, 60000)];
+}
+
+function on_end(ev, call, state, config) {
+  return [summary(state && state.said ? clip(state.said, 80) : "Screened call")];
+}
+
+var tests = [
+  { name: "An unknown caller is shown to me", caller: ["It's Sam from the garage, your car is ready."],
+    expect: { decision: "present" } }
+];</code></pre>
+
+  <footer>+PLUS for GrapheneOS is an independent project, not affiliated with or endorsed by the GrapheneOS project.
+    <a href="../">Back to +PLUS</a>.</footer>
+</main>
+</body>
+</html>
