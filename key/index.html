@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Key backup converter</title>
+<meta name="description" content="Turn a +PLUS key backup (PLUSKEY1-…) into standard key files for avbroot, OpenSSL and fastboot. Runs entirely in your browser.">
+<link rel="icon" href="../icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../site.css">
+<style>
+  textarea { width: 100%; font: .95rem/1.5 ui-monospace, "Cascadia Code", Menlo, Consolas, monospace; padding: .6rem;
+    border: 1px solid var(--line); border-radius: .4rem; background: var(--panel); color: var(--fg); }
+  button { font: inherit; padding: .5rem 1rem; border-radius: .4rem; border: 1px solid var(--accent);
+    background: var(--accent); color: var(--bg); cursor: pointer; }
+  button.secondary { background: var(--panel); color: var(--accent); }
+  .row { display: flex; flex-wrap: wrap; gap: .5rem; margin: .75rem 0; }
+  .status { min-height: 1.5rem; }
+  .status.error { color: light-dark(#b91c1c, #fca5a5); }
+  #files { display: none; }
+  #files.ready { display: block; }
+  .file { border: 1px solid var(--line); border-radius: .5rem; padding: .75rem 1rem; margin: .75rem 0; background: var(--panel); }
+  .file h3 { margin: 0 0 .25rem; font-size: 1rem; }
+  .file p { margin: .25rem 0 .5rem; font-size: .95rem; }
+</style>
+</head>
+<body>
+<main>
+  <header class="top">
+    <img src="../icon.svg" alt="">
+    <div>
+      <h1>Key backup converter</h1>
+      <p class="tagline">From a +PLUS key backup to standard key files</p>
+    </div>
+  </header>
+
+  <nav class="toc" aria-label="Site">
+    <a href="../">+PLUS home</a>
+    <a href="../install/">Set up a phone</a>
+    <a href="#use">Using the files</a>
+  </nav>
+
+  <p class="lead">Paste your <code>PLUSKEY1-…</code> backup to get your key as ordinary files: a private key that
+    avbroot and OpenSSL read, the update certificate your phone trusts, and the verified-boot key blob that fastboot
+    installs.</p>
+  <p class="note">This page runs entirely in your browser: nothing you paste is sent anywhere or stored. For the most
+    care, load the page, then disconnect from the network before you paste. The private key file is as powerful as the
+    backup itself: anyone who has it can sign updates your phone accepts.</p>
+
+  <form id="form">
+    <label for="backup"><strong>Your key backup</strong> (PLUSKEY1-…, from the text, the QR code or the printed sheet)</label>
+    <textarea id="backup" rows="5" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+      required aria-describedby="status"></textarea>
+    <div class="row">
+      <button type="submit">Convert</button>
+      <button type="button" class="secondary" id="clear">Clear everything</button>
+    </div>
+    <p id="status" class="status" role="status"></p>
+  </form>
+
+  <section id="files" aria-live="polite">
+    <h2>Your key files</h2>
+    <p>Key fingerprint: <code id="fingerprint"></code>. +PLUS shows the same fingerprint in its key screen.</p>
+
+    <div class="file">
+      <h3><code>owner.key</code>: private key</h3>
+      <p>RSA-4096 in PKCS#8 PEM, without a password. Encrypt it if you keep it on a computer:
+        <code>openssl pkcs8 -topk8 -v2 aes-256-cbc -in owner.key -out owner-encrypted.key</code>.</p>
+      <button type="button" data-file="key">Download owner.key</button>
+    </div>
+    <div class="file">
+      <h3><code>owner.crt</code>: update certificate</h3>
+      <p>The X.509 certificate updates are signed against (avbroot's <code>--cert-ota</code>). It is derived from the
+        key, so it is always the same one your phone already trusts.</p>
+      <button type="button" data-file="cert">Download owner.crt</button>
+    </div>
+    <div class="file">
+      <h3><code>avb_pkmd.bin</code>: verified-boot public key</h3>
+      <p>The key blob the bootloader checks images with (<code>fastboot flash avb_custom_key avb_pkmd.bin</code>,
+        avbroot's <code>--public-key-avb</code>).</p>
+      <button type="button" data-file="pkmd">Download avb_pkmd.bin</button>
+    </div>
+  </section>
+
+  <h2 id="use">Using the files</h2>
+  <p>+PLUS signs both verified boot and updates with this one key. With
+    <a href="https://github.com/chenxiaolong/avbroot">avbroot</a> on a computer you can, for example, build an image
+    from an official GrapheneOS update yourself:</p>
+<pre><code>avbroot ota patch --input tokay-ota_update-2026102100.zip --rootless \
+  --key-avb owner.key --key-ota owner.key --cert-ota owner.crt \
+  --output signed.zip
+
+avbroot ota verify --input signed.zip --public-key-avb avb_pkmd.bin --cert-ota owner.crt</code></pre>
+  <p>An image built this way is GrapheneOS without +PLUS's additions: +PLUS normally adds itself and your plus-ups
+    before signing. Use it for recovery and checks; for everyday updates, let +PLUS do it on the phone.</p>
+  <p>To check a key file with OpenSSL: <code>openssl pkey -in owner.key -noout -text | head</code> and
+    <code>openssl x509 -in owner.crt -noout -subject -dates</code>.</p>
+
+  <footer>+PLUS for GrapheneOS is an independent project, not affiliated with or endorsed by the GrapheneOS project.
+    <a href="../">Back to +PLUS</a>.</footer>
+</main>
+<script type="module">
+import { avbPkmd, decodeBackup, fingerprintDisplay, ownerCertPem, privateKeyPem } from "../install/lib/owner.js";
+
+const $ = (id) => document.getElementById(id);
+let files = null;
+
+function download(name, data, type) {
+  const url = URL.createObjectURL(new Blob([data], { type }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name;
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+$("form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  $("status").className = "status";
+  $("status").textContent = "Converting…";
+  try {
+    const key = await decodeBackup($("backup").value);
+    files = {
+      key: ["owner.key", privateKeyPem(key), "application/x-pem-file"],
+      cert: ["owner.crt", await ownerCertPem(key), "application/x-pem-file"],
+      pkmd: ["avb_pkmd.bin", avbPkmd(key), "application/octet-stream"],
+    };
+    $("fingerprint").textContent = await fingerprintDisplay(key);
+    $("files").className = "ready";
+    $("status").textContent = "Done. Download the files you need below.";
+  } catch (err) {
+    files = null;
+    $("files").className = "";
+    $("status").className = "status error";
+    $("status").textContent = `That backup can't be read: ${err.message}. Check it against your copy.`;
+  }
+});
+
+document.querySelectorAll("[data-file]").forEach((b) => b.addEventListener("click", () => {
+  if (files) download(...files[b.dataset.file]);
+}));
+
+$("clear").addEventListener("click", () => {
+  files = null;
+  $("backup").value = "";
+  $("fingerprint").textContent = "";
+  $("files").className = "";
+  $("status").className = "status";
+  $("status").textContent = "Cleared.";
+});
+</script>
+</body>
+</html>

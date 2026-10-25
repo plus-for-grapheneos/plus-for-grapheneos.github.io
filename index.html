@@ -15,9 +15,21 @@
     <img src="icon.svg" alt="">
     <div>
       <h1>+PLUS for GrapheneOS</h1>
-      <p class="tagline">Plus-ups for GrapheneOS.</p>
+      <p class="tagline">Featuring call screening, the most requested feature for GrapheneOS.</p>
     </div>
   </header>
+
+  <section class="hero" aria-labelledby="hero-title">
+    <p class="badge">Public alpha · MVP demo</p>
+    <h2 id="hero-title">Call screening comes to GrapheneOS</h2>
+    <p>An assistant answers callers who aren't in your contacts, asks who's calling and why, and shows you a live
+      transcript so you can pick up, reply, or let it take a message. Screening, transcripts, call notes and search all
+      run on your phone.</p>
+    <div class="cta">
+      <a class="button" href="install/">Set up a phone</a>
+      <a class="button secondary" href="#call-screening">How call screening works</a>
+    </div>
+  </section>
 
   <nav class="toc" aria-label="On this page">
     <a href="#what">What it is</a>
@@ -39,10 +51,13 @@
     <li><a href="install/">Set up a phone</a> (desktop Chrome or Edge)</li>
     <li><a href="catalog/">Plus-up catalog</a></li>
     <li><a href="script/">Screening script syntax</a></li>
-    <li><a href="https://github.com/plus-for-grapheneos">Source on GitHub</a></li>
+    <li><a href="key/">Key backup converter</a>: your PLUSKEY1 backup as standard key files</li>
+    <li>Source: <a href="https://github.com/plus-for-grapheneos/plus">+PLUS and the setup page</a>,
+      <a href="https://github.com/plus-for-grapheneos/phone-plus">Phone+ (call screening)</a></li>
   </ul>
 
-  <p class="note">This is an early test version. The catalog is signed with a staging key, not a release key.</p>
+  <p class="note">This is a public alpha: an MVP demo for testing, not for your only phone. The catalog is signed with
+    a staging key, not a release key.</p>
 
   <h2 id="what">What +PLUS is</h2>
   <p>GrapheneOS phones update themselves with images signed by GrapheneOS. Adding anything to the operating system
@@ -174,7 +189,8 @@
       tap Import your key and scan the QR code. Then turn OEM unlocking off again.</li>
   </ol>
   <p>You can back up your own signing key for special recovery tasks, if you ever need it: a repair image signed with
-    your key installs without unlocking the phone.</p>
+    your key installs without unlocking the phone. The <a href="key/">key backup converter</a> turns the backup into
+    standard key files for avbroot, OpenSSL and fastboot.</p>
 
   <h3>2. Add call screening</h3>
   <ol>
@@ -244,7 +260,8 @@
     This address is changed from time to time to keep spam down.</p>
 
   <footer>+PLUS for GrapheneOS is an independent project, not affiliated with or endorsed by the GrapheneOS project.
-    Source: <a href="https://github.com/plus-for-grapheneos">github.com/plus-for-grapheneos</a>.</footer>
+    Source: <a href="https://github.com/plus-for-grapheneos/plus">+PLUS</a>,
+    <a href="https://github.com/plus-for-grapheneos/phone-plus">Phone+</a>.</footer>
 </main>
 </body>
 </html>

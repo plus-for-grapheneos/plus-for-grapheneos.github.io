@@ -54,3 +54,20 @@ th { font-weight: 600; background: var(--code-bg); }
 td code { white-space: nowrap; }
 img.contact { display: block; max-width: 100%; height: auto; margin-bottom: .25rem; }
 footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--line); font-size: .875rem; color: var(--muted); }
+.hero {
+  margin: .5rem 0 1.75rem; padding: 1.25rem 1.25rem 1.4rem; border-radius: .75rem; border: 1px solid var(--line);
+  background: linear-gradient(135deg, light-dark(#eff6ff, #0f1d3a), light-dark(#ffffff, #111a2e));
+}
+.hero h2 { margin: .35rem 0 .5rem; font-size: 1.6rem; }
+.hero p { margin: .5rem 0; }
+.badge {
+  display: inline-block; margin: 0; font-size: .8rem; font-weight: 600; letter-spacing: .02em; padding: .15rem .6rem;
+  border-radius: 999px; color: var(--accent); border: 1px solid var(--accent);
+}
+.cta { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: 1rem; }
+a.button {
+  display: inline-block; padding: .55rem 1.1rem; border-radius: .45rem; font-weight: 600; text-decoration: none;
+  background: var(--accent); color: var(--bg); border: 1px solid var(--accent);
+}
+a.button.secondary { background: transparent; color: var(--accent); }
+a.button:hover, a.button:focus-visible { filter: brightness(1.1); }
