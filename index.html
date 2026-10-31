@@ -36,10 +36,13 @@
     <a href="#security">Security</a>
     <a href="#checks">The checks</a>
     <a href="#plus-ups">Plus-ups</a>
+    <a href="#whats-new">What's new</a>
+    <a href="#own-apps">Your own apps</a>
     <a href="#call-screening">Call screening</a>
     <a href="#setup">Setup</a>
     <a href="#privacy">Privacy</a>
     <a href="#script">Your own script</a>
+    <a href="#debug-root">Debug root</a>
     <a href="script/">Script syntax</a>
     <a href="ai/">AI experiments</a>
   </nav>
@@ -59,6 +62,18 @@
 
   <p class="note">This is a public alpha: an MVP demo for testing, not for your only phone. The catalog is signed with
     a staging key, not a release key.</p>
+
+  <h2 id="whats-new">What's new</h2>
+  <ul>
+    <li><strong>+PLUS 17:</strong> a clearer +PLUS screen that says what is happening now (a build and its step, an
+      update waiting for Wi-Fi or for your restart, a failure and when it tries again), what is available and what the
+      phone runs. New for developers: <a href="#debug-root">debug root</a>, root for the adb shell as a build option.</li>
+    <li><strong>+PLUS 16:</strong> the store shows when a newer +PLUS is available, and a catalog link may use plain
+      <code>http://</code> when its host is an IP address, so you can serve <a href="#own-catalog">your own catalog</a>
+      on your network.</li>
+    <li><strong>+PLUS 15:</strong> <a href="#own-apps">your own apps</a>: an app you installed yourself, starting with
+      Google Phone, made a system app from the copy on your phone.</li>
+  </ul>
 
   <h2 id="what">What +PLUS is</h2>
   <p>GrapheneOS phones update themselves with images signed by GrapheneOS. Adding anything to the operating system
@@ -122,6 +137,12 @@
         <td>Its file hash, package name and version must match the signed catalog. Its signing certificate is
           remembered the first time and must never change.</td>
         <td>A modified app, or an app replaced by one from someone else.</td></tr>
+      <tr><td>Your own apps</td>
+        <td>The installed app's signing certificate must be its maker's (built into +PLUS), and the permissions it gets
+          are capped by a list built into +PLUS; the catalog can only narrow it. Every other permission the app asks for
+          is written down as refused.</td>
+        <td>A catalog granting an app more than +PLUS allows; another app posing as Google Phone; a missing permission
+          entry stopping the phone from starting.</td></tr>
       <tr><td>Signing</td>
         <td>Your key signs only within 30 minutes of an unlock.</td>
         <td>Images signed in the background on a phone nobody unlocked.</td></tr>
@@ -154,6 +175,38 @@
   </ol>
   <p>Because the phone builds the image itself, plus-ups can be offered for every GrapheneOS release on every
     supported Pixel without anyone redistributing GrapheneOS.</p>
+
+  <h3 id="own-catalog">Your own catalog</h3>
+  <p>The catalog link is set when you import your key, so only the key holder can change it. It has the form
+    <code>https://host/path/index.json#sha256=&lt;the catalog key's hash&gt;</code>. A host given as an IP address may
+    use plain <code>http://</code> (for example a computer on your network): the catalog is checked by its signature,
+    key, expiry and serial, and every app by its hash, so the transport adds nothing. A named host needs
+    <code>https://</code>. Catalogs are built with <code>plusbuild publish</code> from the
+    <a href="https://github.com/plus-for-grapheneos/plus">+PLUS source</a>.</p>
+
+  <h2 id="own-apps">Your own apps: Google Phone as a system app</h2>
+  <p>Some apps need system permissions that only an operating system image can grant. +PLUS can take an app you
+    installed yourself, from Play for example, and build it into your image <strong>unchanged</strong>, still signed by
+    its maker, as a system app with the permissions it needs. The app never leaves your phone and is never changed or
+    re-signed; the catalog carries only a recipe: which app, its maker's certificate, the permissions to grant.</p>
+  <p>The first recipe is <strong>Google Phone</strong>, with Call Screen, Hold for Me, Direct My Call and visual
+    voicemail. Call notes, scam detection and "leave a message" need Google's on-device AI, which GrapheneOS doesn't
+    include, so they stay off. Google decides per country where Call Screen and call recording are offered.</p>
+  <ol>
+    <li>Install sandboxed Google Play and then <strong>Google Phone</strong> from Play.</li>
+    <li>In +PLUS, open <strong>Add-ons and your own apps</strong>. Under <strong>Your own apps</strong> Google Phone
+      shows the version installed on your phone. Tick it and tap Apply.</li>
+    <li>Read the warning: it lists the system permissions Google Phone gets (11 of the 22 a stock Pixel gives it, for
+      calls, Call Screen and voicemail).</li>
+    <li>When the update is built, <strong>Restart to finish</strong> lists Google Phone and every permission again.
+      Restart.</li>
+    <li>Set Google Phone as your default phone app. It and Phone+ can't both be the default.</li>
+  </ol>
+  <p>Play keeps updating Google Phone as usual; each later +PLUS build takes the version on your phone. Untick it in
+    the store to make it a normal app again; it keeps its data.</p>
+  <p class="note">GrapheneOS deliberately runs Google's apps without system privileges. As a system app, Google Phone
+    becomes part of the trusted operating system on your phone, with access an ordinary app never has. It is your
+    choice, off by default, and early: tested on a Pixel 9 so far.</p>
 
   <h2 id="call-screening">The first plus-up: call screening</h2>
   <p>Our first plus-up is call screening, a much-requested feature that the project's author really wanted. It is
@@ -215,6 +268,14 @@
     <li>Optionally add the +PLUS AI plus-up and a model for call notes and search.</li>
   </ol>
 
+  <h3>The +PLUS screen</h3>
+  <p>+PLUS (Settings &gt; System &gt; System update) shows first what is happening now, with one button for the next
+    step: <em>Updating: step 2 of 5</em> with a progress bar; <em>Update available</em> and why it is waiting (Wi-Fi,
+    or charging and idle; <strong>Update now</strong> starts it on mobile data); <em>Update installed: restart to
+    finish</em>; a failed attempt, why, and when it tries again; or <em>Up to date</em> and when it last checked. Below
+    it: what is available (GrapheneOS, +PLUS and plus-up versions) and what the phone runs. <strong>Check for
+    updates</strong> only checks; nothing large downloads until you or the automatic update starts it.</p>
+
   <h3>The settings</h3>
   <ul>
     <li><strong>Always ring:</strong> contacts, starred contacts, numbers you called recently, and a never-screen
@@ -256,6 +317,30 @@
   <p>A script can't reach the internet, your files or your contacts. It sees only the call it is screening and the
     notes it saved itself, and it returns actions that Phone+ checks before running them. If a script keeps failing, Phone+ switches back to the default
     script and tells you. <strong>Reset to default</strong> is always there.</p>
+
+  <h2 id="debug-root">Debug root (for developers)</h2>
+  <p>For developing tools and apps it is sometimes necessary to read data an app keeps to itself, such as its
+    database. Normally that means building GrapheneOS from source as a debug build. With +PLUS it is a build option
+    instead: root for the <strong>adb shell over USB only</strong>, turned on for a while and off again in minutes.</p>
+  <ol>
+    <li>Download the official Magisk APK (31.0 or newer) from Magisk's GitHub release to the phone. +PLUS accepts only
+      APKs signed by the Magisk project.</li>
+    <li>In +PLUS, tap <strong>Import your key</strong>, scan or paste your key backup, tick <strong>Debug root for adb
+      (development only)</strong> and import; choose the Magisk APK when asked. Only this screen turns it on, so it
+      needs your key backup.</li>
+    <li>+PLUS builds the update with Magisk in the boot image, signed with your key; the bootloader stays locked.
+      <strong>Restart to finish</strong> shows <em>Debug root ON</em> before it takes effect.</li>
+    <li>After the restart, connect USB and run <code>adb shell /debug_ramdisk/su -c id</code>. The first time, Magisk
+      asks to finish its setup: tap OK (it installs the Magisk app), grant <strong>Shell</strong>, and in Magisk set
+      <strong>Settings &gt; Superuser access</strong> to <strong>ADB only</strong>, so no app can ever get root. Tap
+      Cancel if it asks for <em>additional setup</em>.</li>
+    <li>While it is on, a notification says so. Tap <strong>End debug root</strong> (or the button on the +PLUS
+      screen): +PLUS builds the update without root, and after Restart to finish root is gone.</li>
+  </ol>
+  <p class="note"><strong>Never use Magisk's Install button or its Uninstall Magisk button</strong> on a +PLUS phone:
+    they rewrite the boot partition, which then fails verified boot with your locked bootloader. +PLUS turns Magisk on
+    and off. While debug root is on, everything readable after the first unlock is readable by root over USB; GrapheneOS
+    considers root a weakening of its security model. Turn it on only when you need it, with wireless debugging off.</p>
 
   <h2 id="contact">Contact</h2>
   <p><img src="contact.png" width="330" height="44" alt="Contact email address (shown as an image)" class="contact"><br>
