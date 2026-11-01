@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>+PLUS roadmap</title>
+<meta name="description" content="What the +PLUS for GrapheneOS project is working on next: plus-ups, features and investigations, and what isn't possible yet.">
+<link rel="icon" href="../icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../site.css">
+</head>
+<body>
+<main>
+  <header class="top">
+    <img src="../icon.svg" alt="">
+    <div>
+      <h1>Roadmap</h1>
+      <p class="tagline">What we are working on next, and what we are still finding out</p>
+    </div>
+  </header>
+
+  <nav class="toc" aria-label="On this page">
+    <a href="../">+PLUS home</a>
+    <a href="#next">Next up</a>
+    <a href="#planned">Planned</a>
+    <a href="#investigating">Investigating</a>
+    <a href="#not-yet">Not possible yet</a>
+    <a href="#help">How you can help</a>
+  </nav>
+
+  <p class="lead">+PLUS is an early preview. This page lists the plus-ups, features and investigations in our pipeline,
+    grouped by how close they are. Plans change as we test on real phones; nothing here is a promise or a date.</p>
+
+  <h2 id="next">Next up</h2>
+  <ul>
+    <li><strong>Setup step for debug root.</strong> +PLUS explains the one-time Magisk step itself after the first
+      restart with root, and choosing debug root at key import no longer starts a build until you say so.</li>
+    <li><strong>GrapheneOS's setup "security preview" step.</strong> GrapheneOS's setup asks the update app for a
+      security-preview choice; +PLUS will answer it, so setup no longer skips that step.</li>
+    <li><strong>Google Phone, tested further.</strong> Hold for Me, visual voicemail, call recording where Google offers
+      it, Play updates, and turning it off again, on more phones.</li>
+    <li><strong>Phone+ fixes</strong> from testing: search results kept when you go back, labels on calls that screening
+      turned away, and AI call notes without stray labels from the model's instructions.</li>
+  </ul>
+
+  <h2 id="planned">Planned</h2>
+
+  <h3>Owner lock: your key after a reset or failed PINs</h3>
+  <p>Make a stolen phone much less useful. Two parts, both built into the image +PLUS signs, with no change to
+    GrapheneOS's own code:</p>
+  <ul>
+    <li><strong>After a factory reset</strong> the phone asks for your +PLUS key during setup, so a thief who resets it
+      can't simply set it up again. GrapheneOS's setup already hands one step to the update app, which +PLUS is.</li>
+    <li><strong>After a number of wrong PINs, or many hours without an unlock,</strong> the phone restarts and asks for
+      your key before the PIN pad even appears, while your data stays encrypted. The PIN still unlocks as usual after
+      that.</li>
+  </ul>
+  <p class="note">This only protects a phone with OEM unlocking turned off, and losing your key backup would then lock
+    you out for good. It will be optional, with clear warnings, and tested on development phones first.</p>
+
+  <h3>Several catalogs at once</h3>
+  <p>Follow more than one catalog, for example ours and your own with your own apps. Each keeps its own key, serial
+    and expiry; a catalog that is down never holds back the others or a GrapheneOS update.</p>
+
+  <h3>More "your own apps"</h3>
+  <p>Recipes for other apps that need system permissions to work properly on GrapheneOS, for example giving a call
+    recorder you choose access to call audio. Each one is reviewed, capped by a list built into +PLUS, and opt-in.</p>
+
+  <h3>Phone+: calling cards and company lines</h3>
+  <p>Call through an access number first, then send the rest as tones, the way calling cards and office phone systems
+    work, so a return call can show your company number. Unlimited routes, rules per number type, PINs kept
+    encrypted and never logged.</p>
+
+  <h3>Call screening in the car</h3>
+  <p>Screen calls with Android Auto: see who is calling and why on the car's screen, and answer or decline from
+    there.</p>
+
+  <h3>A release signing key</h3>
+  <p>The catalog is signed with a staging key during the preview. Before a real release it moves to an offline release
+    key, and the phones' catalog link changes with it.</p>
+
+  <h2 id="investigating">Investigating</h2>
+  <ul>
+    <li><strong>SMS spam detection on the phone</strong> for a messaging app: classic spam filtering combined with a
+      small fine-tuned language model. Early results are on the <a href="../ai/">AI experiments</a> page.</li>
+    <li><strong>Better on-device AI.</strong> Fine-tuning Gemma 4 for call notes, the larger E4B model on phones with
+      more memory, and the phone's NPU.</li>
+    <li><strong>Pixel 6 and Pixel 10.</strong> +PLUS supports every model GrapheneOS supports, but so far it has only been
+      loaded onto Pixel 9 phones.</li>
+  </ul>
+
+  <h2 id="not-yet">Not possible yet</h2>
+  <ul>
+    <li><strong>Google's on-device AI (AICore, Gemini Nano).</strong> AICore can be made a system app the same way as
+      Google Phone, but Google doesn't serve its model to GrapheneOS, and nothing +PLUS adds to the image can put the
+      model in. So Google Phone's call notes, scam detection and "leave a message" stay off. They would need a change to
+      GrapheneOS itself.</li>
+    <li><strong>Holding the phone's encryption until your key is scanned.</strong> The owner lock can keep anyone from
+      reaching the PIN pad, but the PIN is still what decrypts the phone; changing that needs GrapheneOS itself.</li>
+  </ul>
+
+  <h2 id="help">How you can help</h2>
+  <ul>
+    <li>Try +PLUS on a phone you can test with, and send us the log from +PLUS (Share log) if anything goes wrong.</li>
+    <li>If you have classified sample calls or messages you are willing to share for testing, see the
+      <a href="../ai/">AI experiments</a> page.</li>
+    <li>Contact: see the address on the <a href="../#contact">home page</a>.</li>
+  </ul>
+
+  <footer>+PLUS for GrapheneOS is an independent project, not affiliated with or endorsed by the GrapheneOS project.
+    <a href="../">Back to +PLUS</a>.</footer>
+</main>
+</body>
+</html>

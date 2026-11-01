@@ -1,42 +1,56 @@
+/* The setup page, in the site's monochrome style (../site.css): black on white like the +PLUS icon, inverted in dark
+   mode; green and red only for checks that passed or failed. */
+@font-face { font-family: "Atkinson Hyperlegible"; font-style: normal; font-weight: 400; font-display: swap;
+  src: url("../fonts/atkinson-hyperlegible-latin-400-normal.woff2") format("woff2"); }
+@font-face { font-family: "Atkinson Hyperlegible"; font-style: normal; font-weight: 700; font-display: swap;
+  src: url("../fonts/atkinson-hyperlegible-latin-700-normal.woff2") format("woff2"); }
 :root {
-  --bg: #fafaf9;
-  --fg: #1c1917;
-  --muted: #57534e;
-  --line: #d6d3d1;
-  --accent: #0f766e;
+  --bg: #ffffff;
+  --fg: #1f1f1f;
+  --ink: #000000;
+  --muted: #5c5c5c;
+  --line: #dadada;
+  --accent: #000000;
   --accent-fg: #ffffff;
-  --ok: #15803d;
-  --bad: #b91c1c;
-  --panel: #ffffff;
+  --ok: #0a7a3a;
+  --bad: #b3261e;
+  --panel: #f3f3f3;
   color-scheme: light dark;
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #1c1917;
-    --fg: #f5f5f4;
-    --muted: #a8a29e;
-    --line: #44403c;
-    --accent: #2dd4bf;
-    --accent-fg: #042f2e;
-    --ok: #4ade80;
-    --bad: #f87171;
-    --panel: #292524;
+    --bg: #000000;
+    --fg: #e8e8e8;
+    --ink: #ffffff;
+    --muted: #a6a6a6;
+    --line: #333333;
+    --accent: #ffffff;
+    --accent-fg: #000000;
+    --ok: #5fd68f;
+    --bad: #ff8a80;
+    --panel: #141414;
   }
 }
 
 * { box-sizing: border-box; }
 body {
   margin: 0 auto;
-  max-width: 46rem;
+  max-width: 48rem;
   padding: 1rem;
   background: var(--bg);
   color: var(--fg);
-  font: 1rem/1.5 system-ui, sans-serif;
+  font: 1.0625rem/1.55 "Atkinson Hyperlegible", system-ui, sans-serif;
   accent-color: var(--accent);
 }
-h1 { font-size: 1.6rem; margin: 0.5rem 0; }
+h1 { font-size: 1.6rem; margin: 0.5rem 0; color: var(--ink); }
+h2 { color: var(--ink); }
+a { color: var(--ink); text-underline-offset: .18em; }
 h2 { font-size: 1.3rem; }
-.tag { font-size: 0.8rem; font-weight: 500; border: 1px solid var(--line); border-radius: 1rem; padding: 0.1rem 0.6rem; color: var(--muted); vertical-align: middle; }
+.tag { font-size: 0.85rem; font-weight: 700; border: 1.5px solid var(--ok); border-radius: 3px; padding: 0.1rem 0.5rem; color: var(--ok); vertical-align: middle; white-space: nowrap; }
+header.top { display: flex; align-items: flex-start; gap: 0.9rem; margin: 1.25rem 0 1.5rem; }
+header.top .home img { display: block; width: 3rem; height: 3rem; }
+header.top h1 { font-size: 1.75rem; line-height: 1.2; margin: 0.15rem 0 0.4rem; }
+header.top p { margin: 0; }
 .top p, footer { color: var(--muted); }
 footer { font-size: 0.85rem; margin-top: 3rem; border-top: 1px solid var(--line); }
 
@@ -47,14 +61,14 @@ footer { font-size: 0.85rem; margin-top: 3rem; border-top: 1px solid var(--line)
 .steps li.done { color: var(--ok); }
 .steps li.done::after { content: " ✓"; }
 
-section { background: var(--panel); border: 1px solid var(--line); border-radius: 0.75rem; padding: 0.5rem 1.25rem 1.25rem; }
+section { background: var(--panel); border-top: 2px solid var(--ink); padding: 0.5rem 1.25rem 1.25rem; }
 button {
-  font: inherit; padding: 0.55rem 1.1rem; margin: 0.5rem 0.5rem 0 0; border-radius: 0.5rem;
-  border: 1px solid var(--accent); background: var(--accent); color: var(--accent-fg); cursor: pointer;
+  font: inherit; padding: 0.55rem 1.1rem; margin: 0.5rem 0.5rem 0 0; border-radius: 4px; font-weight: 700;
+  border: 2px solid var(--accent); background: var(--accent); color: var(--accent-fg); cursor: pointer;
 }
 button:disabled { opacity: 0.5; cursor: not-allowed; }
 .actions button, #log-copy, #cleanup, button.secondary { background: transparent; color: var(--fg); border-color: var(--line); }
-button:focus-visible, input:focus-visible, textarea:focus-visible, summary:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+button:focus-visible, input:focus-visible, textarea:focus-visible, summary:focus-visible { outline: 3px solid var(--ok); outline-offset: 2px; }
 label { display: block; margin-top: 0.75rem; font-weight: 600; }
 input[type="file"], textarea, input:not([type]) { display: block; width: 100%; margin-top: 0.25rem; font: inherit; padding: 0.4rem; border: 1px solid var(--line); border-radius: 0.4rem; background: var(--bg); color: var(--fg); }
 #last-block { max-width: 8rem; font-family: ui-monospace, monospace; text-transform: uppercase; }

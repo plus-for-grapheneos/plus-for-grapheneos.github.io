@@ -1,75 +1,140 @@
+/* +PLUS site. Monochrome like the +PLUS app icon (black plus-up on white), inverted in dark mode. Green only for
+   "checked" cues and keyboard focus. Atkinson Hyperlegible is served from this site (no third-party font requests). */
+@font-face { font-family: "Atkinson Hyperlegible"; font-style: normal; font-weight: 400; font-display: swap;
+  src: url("fonts/atkinson-hyperlegible-latin-400-normal.woff2") format("woff2"); }
+@font-face { font-family: "Atkinson Hyperlegible"; font-style: italic; font-weight: 400; font-display: swap;
+  src: url("fonts/atkinson-hyperlegible-latin-400-italic.woff2") format("woff2"); }
+@font-face { font-family: "Atkinson Hyperlegible"; font-style: normal; font-weight: 700; font-display: swap;
+  src: url("fonts/atkinson-hyperlegible-latin-700-normal.woff2") format("woff2"); }
+
 :root {
   color-scheme: light dark;
-  --bg: light-dark(#f8fafc, #0b1220);
-  --fg: light-dark(#0f172a, #e2e8f0);
-  --muted: light-dark(#475569, #94a3b8);
-  --accent: light-dark(#1d4ed8, #93c5fd);
-  --line: light-dark(#e2e8f0, #1e293b);
-  --panel: light-dark(#ffffff, #111a2e);
-  --code-bg: light-dark(#eef2f7, #0f1a30);
-  --note-bg: light-dark(#eff6ff, #0f1d3a);
+  --paper: light-dark(#ffffff, #000000);
+  --ink: light-dark(#000000, #ffffff);
+  --text: light-dark(#1f1f1f, #e8e8e8);
+  --muted: light-dark(#5c5c5c, #a6a6a6);
+  --rule: light-dark(#dadada, #333333);
+  --tint: light-dark(#f3f3f3, #141414);
+  --check: light-dark(#0a7a3a, #5fd68f);
+  --sans: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: ui-monospace, "Cascadia Code", "SF Mono", Menlo, Consolas, monospace;
+  --measure: 44rem;
+  /* Older names still used in some pages' own styles. */
+  --bg: var(--paper); --fg: var(--text); --accent: var(--ink); --line: var(--rule); --panel: var(--tint);
+  --code-bg: var(--tint); --note-bg: var(--tint);
 }
+
 * { box-sizing: border-box; }
-body {
-  margin: 0; background: var(--bg); color: var(--fg);
-  font: 1.0625rem/1.65 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--paper); color: var(--text); font: 1.0625rem/1.6 var(--sans); }
+
+/* Layout: one reading column; on wide screens the page's contents list sits in a sticky column on the left. */
+main { max-width: calc(var(--measure) + 2rem); margin: 0 auto; padding: 2.25rem 1rem 3rem; }
+@media (min-width: 72rem) {
+  main {
+    max-width: 68rem; display: grid; grid-template-columns: 15rem minmax(0, var(--measure));
+    column-gap: 3.5rem; padding-top: 3rem;
+  }
+  main > * { grid-column: 2; }
+  main > header.top { grid-column: 1 / -1; }
+  main > nav.toc {
+    grid-column: 1; grid-row: 2 / span 400; align-self: start; position: sticky; top: 2rem;
+    flex-direction: column; flex-wrap: nowrap; gap: 0; margin: 0; padding-left: .9rem; border-left: 2px solid var(--ink);
+  }
+  main > nav.toc a { padding: .28rem 0; }
 }
-main { max-width: 46rem; margin: 0 auto; padding: 3rem 1rem 3rem; }
-header.top { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem; }
-header.top img { width: 3.5rem; height: 3.5rem; flex: none; }
-h1 { font-size: 1.75rem; line-height: 1.2; margin: 0; text-wrap: balance; }
-h2 { font-size: 1.35rem; line-height: 1.3; margin: 2.75rem 0 .6rem; scroll-margin-top: 1rem; text-wrap: balance; }
-h3 { font-size: 1.1rem; margin: 1.75rem 0 .4rem; scroll-margin-top: 1rem; }
+
+/* Header: the app icon and the site name. */
+header.top { display: flex; align-items: center; gap: .9rem; margin-bottom: 2rem; }
+header.top img { width: 3rem; height: 3rem; flex: none; }
+h1 { font-size: 1.5rem; line-height: 1.15; margin: 0; color: var(--ink); letter-spacing: -.01em; }
+.tagline { margin: .15rem 0 0; color: var(--muted); font-size: 1rem; }
+
+h2, h3 { color: var(--ink); text-wrap: balance; scroll-margin-top: 1.5rem; }
+h2 { font-size: 1.55rem; line-height: 1.2; margin: 3.25rem 0 .7rem; letter-spacing: -.01em; }
+h3 { font-size: 1.15rem; line-height: 1.3; margin: 2rem 0 .4rem; }
 p, li { text-wrap: pretty; }
-.tagline { margin: .2rem 0 0; color: var(--muted); }
-.lead { font-size: 1.15rem; }
-a { color: var(--accent); }
-ul, ol { padding-left: 1.4rem; }
-li { margin: .3rem 0; }
+.lead { font-size: 1.2rem; line-height: 1.55; color: var(--ink); }
+strong { color: var(--ink); }
+
+a { color: var(--ink); text-decoration-thickness: .08em; text-underline-offset: .18em; }
+a:hover { text-decoration-thickness: .16em; }
+:focus-visible { outline: 3px solid var(--check); outline-offset: 2px; border-radius: 2px; }
+
+ul, ol { padding-left: 1.35rem; }
+li { margin: .35rem 0; }
 li > ul { margin: .3rem 0; }
-nav.toc { display: flex; flex-wrap: wrap; gap: .4rem; margin: 0 0 1.5rem; }
-nav.toc a {
-  font-size: .875rem; text-decoration: none; padding: .2rem .65rem; border: 1px solid var(--line);
-  border-radius: 999px; background: var(--panel);
-}
-nav.toc a:hover, nav.toc a:focus-visible { border-color: var(--accent); }
-ul.links { list-style: none; padding: 0; margin: 1.5rem 0; display: grid; gap: .5rem; }
-ul.links a { font-weight: 600; }
-.note {
-  background: var(--note-bg); border-left: 3px solid var(--accent); padding: .6rem .9rem; border-radius: 0 .4rem .4rem 0;
-  font-size: .95rem;
-}
-code, pre { font-family: ui-monospace, "Cascadia Code", "SF Mono", Menlo, Consolas, monospace; font-size: .9em; }
-code { background: var(--code-bg); padding: .05rem .3rem; border-radius: .25rem; overflow-wrap: anywhere; }
-pre {
-  background: var(--code-bg); padding: .85rem 1rem; border-radius: .5rem; overflow-x: auto; line-height: 1.5;
-  border: 1px solid var(--line);
-}
+li::marker { color: var(--muted); }
+ol > li::marker { font-weight: 700; color: var(--ink); }
+
+/* Contents list: plain links; a row on phones, a column on wide screens. */
+nav.toc { display: flex; flex-wrap: wrap; gap: .15rem 1.1rem; margin: 0 0 2rem; font-size: .95rem; }
+nav.toc a { text-decoration: none; color: var(--muted); padding: .15rem 0; }
+nav.toc a:hover, nav.toc a:focus-visible { color: var(--ink); text-decoration: underline; }
+
+ul.links { list-style: none; padding: 0; margin: 1.5rem 0; display: grid; gap: .4rem; }
+ul.links a { font-weight: 700; }
+
+.note { margin: 1.25rem 0; padding: .75rem 1rem; background: var(--tint); border-left: 4px solid var(--ink); font-size: .975rem; }
+
+code, pre { font-family: var(--mono); font-size: .88em; }
+code { background: var(--tint); padding: .08rem .3rem; border-radius: 3px; overflow-wrap: anywhere; }
+pre { background: var(--tint); padding: .9rem 1rem; overflow-x: auto; line-height: 1.5; border-left: 4px solid var(--rule); }
 pre code { background: none; padding: 0; overflow-wrap: normal; }
-.table { overflow-x: auto; margin: 1rem 0; border: 1px solid var(--line); border-radius: .5rem; background: var(--panel); }
-table { border-collapse: collapse; width: 100%; font-size: .925rem; }
-th, td { text-align: left; vertical-align: top; padding: .55rem .7rem; border-bottom: 1px solid var(--line); }
+
+.table { overflow-x: auto; margin: 1.25rem 0; border-top: 2px solid var(--ink); border-bottom: 1px solid var(--rule); }
+table { border-collapse: collapse; width: 100%; font-size: .95rem; }
+th, td { text-align: left; vertical-align: top; padding: .6rem .75rem .6rem 0; border-bottom: 1px solid var(--rule); }
+th { font-weight: 700; color: var(--ink); }
 tr:last-child td { border-bottom: none; }
-th { font-weight: 600; background: var(--code-bg); }
+td:first-child { font-weight: 700; color: var(--ink); }
 td code { white-space: nowrap; }
+
 img.contact { display: block; max-width: 100%; height: auto; margin-bottom: .25rem; }
-footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--line); font-size: .875rem; color: var(--muted); }
-.hero {
-  margin: .5rem 0 1.75rem; padding: 1.25rem 1.25rem 1.4rem; border-radius: .75rem; border: 1px solid var(--line);
-  background: linear-gradient(135deg, light-dark(#eff6ff, #0f1d3a), light-dark(#ffffff, #111a2e));
+footer { margin-top: 3.5rem; padding-top: 1rem; border-top: 1px solid var(--rule); font-size: .9rem; color: var(--muted); }
+footer a { color: var(--muted); }
+
+/* Hero: the plus-up mark large beside the headline, the one bold element on the page. */
+.hero { position: relative; margin: 0 0 2.5rem; padding: 0 0 2rem; border-bottom: 2px solid var(--ink); }
+.hero h2 { margin: .6rem 0 .75rem; font-size: clamp(1.9rem, 1.2rem + 2.6vw, 2.75rem); line-height: 1.08; letter-spacing: -.02em; }
+.hero p { margin: .5rem 0; font-size: 1.1rem; }
+.hero .choices { margin: 1rem 0 0; padding-left: 1.25rem; }
+.hero .choices li { margin: .7rem 0; }
+.hero-mark { display: none; }
+@media (min-width: 48rem) {
+  .hero { padding-right: 9.5rem; }
+  .hero-mark { display: block; position: absolute; top: .4rem; right: 0; width: 7.5rem; height: auto; }
 }
-.hero h2 { margin: .35rem 0 .5rem; font-size: 1.6rem; }
-.hero p { margin: .5rem 0; }
-.hero .choices { margin: .75rem 0 0; padding-left: 1.2rem; }
-.hero .choices li { margin: .5rem 0; }
+@media (prefers-color-scheme: dark) { .hero-mark { filter: invert(1); } }
+
 .badge {
-  display: inline-block; margin: 0; font-size: .8rem; font-weight: 600; letter-spacing: .02em; padding: .15rem .6rem;
-  border-radius: 999px; color: var(--accent); border: 1px solid var(--accent);
+  display: inline-block; margin: 0; font-size: .85rem; font-weight: 700; padding: .1rem .55rem;
+  border: 1.5px solid var(--check); color: var(--check); border-radius: 3px;
 }
-.cta { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: 1rem; }
+.cta { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: 1.4rem; }
 a.button {
-  display: inline-block; padding: .55rem 1.1rem; border-radius: .45rem; font-weight: 600; text-decoration: none;
-  background: var(--accent); color: var(--bg); border: 1px solid var(--accent);
+  display: inline-block; padding: .6rem 1.15rem; font-weight: 700; text-decoration: none; border-radius: 4px;
+  background: var(--ink); color: var(--paper); border: 2px solid var(--ink);
 }
-a.button.secondary { background: transparent; color: var(--accent); }
-a.button:hover, a.button:focus-visible { filter: brightness(1.1); }
+a.button.secondary { background: transparent; color: var(--ink); }
+a.button:hover { text-decoration: underline; }
+
+/* Figures, ready for screenshots and diagrams.
+   <figure class="screens"> holds phone screenshots side by side (each <figure> with an <img> and a <figcaption>);
+   <figure class="diagram"> holds a diagram across the reading column (SVG preferred: it can use currentColor and
+   follows dark mode); a plain <figure> holds one image with a caption. */
+figure { margin: 1.75rem 0; }
+figure img, figure svg { display: block; max-width: 100%; height: auto; }
+figcaption { margin-top: .5rem; font-size: .9rem; color: var(--muted); }
+figure.screens { display: grid; grid-template-columns: repeat(auto-fit, minmax(10.5rem, 1fr)); gap: 1.25rem; }
+figure.screens figure { margin: 0; }
+figure.screens img {
+  width: 100%; max-width: 15rem; aspect-ratio: 9 / 19.5; object-fit: cover; object-position: top;
+  border: 2px solid var(--ink); border-radius: 1.1rem; background: var(--tint);
+}
+figure.screens > figcaption { grid-column: 1 / -1; margin-top: 0; }
+figure.diagram { padding: 1rem 0; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); color: var(--ink); }
+figure.diagram img, figure.diagram svg { width: 100%; }
+@media (prefers-color-scheme: dark) { figure.diagram img.invert-dark { filter: invert(1); } }
+
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
