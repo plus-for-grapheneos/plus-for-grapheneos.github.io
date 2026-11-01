@@ -23,6 +23,7 @@
     <a href="#next">Next up</a>
     <a href="#planned">Planned</a>
     <a href="#investigating">Investigating</a>
+    <a href="#aicore">Google's on-device AI</a>
     <a href="#not-yet">Not possible yet</a>
     <a href="#help">How you can help</a>
   </nav>
@@ -88,12 +89,34 @@
       loaded onto Pixel 9 phones.</li>
   </ul>
 
+  <h2 id="aicore">Google's on-device AI: working, but not like this</h2>
+  <p>Google Phone's call notes, scam detection and "leave a message" run on Google's on-device AI: AICore with the
+    Gemini Nano model. <strong>We have had it working on GrapheneOS.</strong> In our own source build of GrapheneOS,
+    Google Phone's call notes produced summaries on the phone, on the Pixel's Tensor chip, from a model we supplied
+    ourselves.</p>
+  <p>Getting there took much more than adding apps:</p>
+  <ul>
+    <li>AICore and Google's Private Compute Services installed as privileged system apps;</li>
+    <li>the model put into AICore's storage by code we added to GrapheneOS's framework, because Google's servers
+      refuse to send it to GrapheneOS and AICore allows no other way in;</li>
+    <li>more framework changes: settings that sandboxed Google Play can't set on GrapheneOS, a temporary exemption so
+      AICore isn't frozen while it summarises after a call, and an SELinux rule;</li>
+    <li>for scam detection, also data Google only serves to phones that pass its integrity check, which GrapheneOS
+      doesn't.</li>
+  </ul>
+  <p><strong>That is too far from GrapheneOS's security model to ship.</strong> GrapheneOS keeps Google's apps
+    sandboxed and unprivileged, and its own code is what makes the phone secure; our build changed both. It meant our
+    own GrapheneOS build rather than official releases, with framework patches to carry and re-check at every release,
+    and Google components with system privileges. +PLUS exists precisely to avoid that: it uses official GrapheneOS
+    releases unchanged and only adds apps and configuration.</p>
+  <p><strong>We are trying to make it simpler.</strong> With +PLUS's "your own apps", AICore can already become a system
+    app without changing GrapheneOS's code, more simply than in our source build. What is still missing is a way to put
+    a model you obtained yourself into AICore that needs no framework change; until then these three Google Phone
+    features stay off with +PLUS. If we find a way that keeps GrapheneOS's code untouched, it will be opt-in, with a
+    clear warning.</p>
+
   <h2 id="not-yet">Not possible yet</h2>
   <ul>
-    <li><strong>Google's on-device AI (AICore, Gemini Nano).</strong> AICore can be made a system app the same way as
-      Google Phone, but Google doesn't serve its model to GrapheneOS, and nothing +PLUS adds to the image can put the
-      model in. So Google Phone's call notes, scam detection and "leave a message" stay off. They would need a change to
-      GrapheneOS itself.</li>
     <li><strong>Holding the phone's encryption until your key is scanned.</strong> The owner lock can keep anyone from
       reaching the PIN pad, but the PIN is still what decrypts the phone; changing that needs GrapheneOS itself.</li>
   </ul>
