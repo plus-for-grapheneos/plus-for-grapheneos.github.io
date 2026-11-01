@@ -60,6 +60,8 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--line);
 }
 .hero h2 { margin: .35rem 0 .5rem; font-size: 1.6rem; }
 .hero p { margin: .5rem 0; }
+.hero .choices { margin: .75rem 0 0; padding-left: 1.2rem; }
+.hero .choices li { margin: .5rem 0; }
 .badge {
   display: inline-block; margin: 0; font-size: .8rem; font-weight: 600; letter-spacing: .02em; padding: .15rem .6rem;
   border-radius: 999px; color: var(--accent); border: 1px solid var(--accent);

@@ -21,13 +21,21 @@
 
   <section class="hero" aria-labelledby="hero-title">
     <p class="badge">Public alpha · MVP demo</p>
-    <h2 id="hero-title">Call screening comes to GrapheneOS</h2>
-    <p>An assistant answers callers who aren't in your contacts, asks who's calling and why, and shows you a live
-      transcript so you can pick up, reply, or let it take a message. Screening, transcripts, call notes and search all
-      run on your phone.</p>
+    <h2 id="hero-title">Call screening comes to GrapheneOS, two ways</h2>
+    <p>Exciting news: with +PLUS, GrapheneOS phones now have two call screening options. Pick the one that fits you.</p>
+    <ul class="choices">
+      <li><strong><a href="#call-screening">Phone+</a>, fully private.</strong> Our own phone app, in development:
+        an assistant answers callers who aren't in your contacts, asks who's calling and why, and shows you a live
+        transcript. Screening, transcripts, call notes and search all run on your phone; nothing goes to Google or to
+        us.</li>
+      <li><strong><a href="#own-apps">Google Phone</a>, finally working on GrapheneOS.</strong> If Google's own Call
+        Screen, Hold for Me and visual voicemail are what you're after, and you trust Google with them, +PLUS now makes
+        most of Google Phone's features work: your own copy from the Play Store, made a system app on your phone.</li>
+    </ul>
     <div class="cta">
       <a class="button" href="install/">Set up a phone</a>
-      <a class="button secondary" href="#call-screening">How call screening works</a>
+      <a class="button secondary" href="#call-screening">Phone+</a>
+      <a class="button secondary" href="#own-apps">Google Phone</a>
     </div>
   </section>
 
@@ -184,7 +192,11 @@
     <code>https://</code>. Catalogs are built with <code>plusbuild publish</code> from the
     <a href="https://github.com/plus-for-grapheneos/plus">+PLUS source</a>.</p>
 
-  <h2 id="own-apps">Your own apps: Google Phone as a system app</h2>
+  <h2 id="own-apps">The second option: Google Phone, finally working on GrapheneOS</h2>
+  <p>Google Phone from the Play Store installs on GrapheneOS, but its call features never worked there: Call Screen
+    and Hold for Me need system permissions an ordinary app can't get. With +PLUS they now work. If convenience and
+    Google's own features are what you're after, and you trust Google with your calls, this is the option for you.</p>
+  <h3>How: your own apps as system apps</h3>
   <p>Some apps need system permissions that only an operating system image can grant. +PLUS can take an app you
     installed yourself, from Play for example, and build it into your image <strong>unchanged</strong>, still signed by
     its maker, as a system app with the permissions it needs. The app never leaves your phone and is never changed or
@@ -208,10 +220,11 @@
     becomes part of the trusted operating system on your phone, with access an ordinary app never has. It is your
     choice, off by default, and early: tested on a Pixel 9 so far.</p>
 
-  <h2 id="call-screening">The first plus-up: call screening</h2>
+  <h2 id="call-screening">The first plus-up: call screening with Phone+</h2>
   <p>Our first plus-up is call screening, a much-requested feature that the project's author really wanted. It is
     highly customizable and runs entirely on the phone, with on-device search, transcripts and call notes. It is in the
-    catalog now as a test version: choose <strong>Phone+</strong> in the +PLUS store.</p>
+    catalog now as a test version: choose <strong>Phone+</strong> in the +PLUS store. (Prefer Google's own Call
+    Screen? See <a href="#own-apps">Google Phone</a> below.)</p>
   <p>Phone+ is GrapheneOS's phone app with a call assistant added:</p>
   <ul>
     <li><strong>Screening.</strong> The assistant answers callers who aren't in your contacts, asks who's calling and
