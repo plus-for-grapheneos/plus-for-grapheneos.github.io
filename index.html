@@ -43,6 +43,8 @@
   <nav class="toc" aria-label="On this page">
     <a href="#what">What it is</a>
     <a href="#security">Security</a>
+    <a href="#keys">Who holds the keys?</a>
+    <a href="#pen">Holding the pen</a>
     <a href="#checks">The checks</a>
     <a href="#plus-ups">Plus-ups</a>
     <a href="#whats-new">What's new</a>
@@ -130,6 +132,71 @@
   <p class="note">Your key backup is as powerful as the key itself: whoever has it can sign updates your phone accepts.
     Keep it offline. Coercion and malware on an already unlocked phone are not prevented by any update system; read
     the change list before you tap Restart to finish.</p>
+
+  <h2 id="keys">Who holds the keys?</h2>
+  <p>Spy agencies don't do honeypots by halvies. For about three years the FBI, with Australian police, quietly ran
+    ANOM, an "encrypted" phone service for criminals. It had real customers, real support, roughly 12,000 devices in
+    more than 100 countries, and about 27 million messages read along the way. As startups go, it had excellent
+    product–market fit.</p>
+  <p>Then there were the pagers. In 2024 thousands of them exploded across Lebanon at the same moment, the result of an
+    operation Israel later acknowledged and years in the making. According to the reporting, it had:</p>
+  <ul>
+    <li>a front company with a licence for a real pager brand;</li>
+    <li>its own production, with explosives built into the battery so cleverly that the pagers passed the buyer's own
+      careful inspections;</li>
+    <li>a captured supply chain that reached all the way to the sales agents who pitched the pagers, there to make the
+      deal feel trustworthy.</li>
+  </ul>
+  <p>Hezbollah didn't take the pagers on faith; it checked them, and found nothing. That's how good the professionals
+    are.</p>
+  <p>So when the question is whether a security-focused phone OS could be a target, the honest answer is: of course it
+    could. It's used by exactly the people those agencies most want to watch. Infiltration, a quiet word with a
+    developer, a stolen signing key: none of that is a fringe idea. It's the history.</p>
+  <p>We have no reason to think it has happened to GrapheneOS. But "trust me bro" isn't a security model, whether it
+    comes from GrapheneOS or from us.</p>
+  <p>So +PLUS is boring on purpose:</p>
+  <ul>
+    <li>official GrapheneOS releases, checked against GrapheneOS's own signatures;</li>
+    <li>signed again on your phone, with a key only you hold;</li>
+    <li>activated only after you've read the list of changes;</li>
+    <li>all of our source published.</li>
+  </ul>
+  <p>Nobody can push an update onto your phone without you: not us, not GrapheneOS, and not whoever might lean on either
+    of us. It doesn't make GrapheneOS's code any more trustworthy than it already is. It just means the last word on
+    what your phone runs is yours.</p>
+  <p>We can think of exactly one reason to object to that, and it needs a tinfoil hat: that someone, somewhere, would
+    rather hold the keys to your phone than let you hold them. We don't own a tinfoil hat; it messes with the Wi-Fi. We
+    just made sure the only key is yours.</p>
+
+  <h2 id="pen">And while we're holding the pen…</h2>
+  <p>Once your phone trusts your key, something else becomes possible. A few long-standing requests have spent years in
+    the "we'll give you the cake, but please don't eat it" category: you can have a Pixel and a hardened OS, just not
+    the features that made you want the Pixel. If you're re-signing the operating system anyway, we thought, you might
+    as well add the few things that are missing while you're at it.</p>
+  <p>So +PLUS adds them, as plus-ups you choose, never as defaults:</p>
+  <ul>
+    <li><strong>Call screening, the most requested feature, and your choice of how.</strong> Try
+      <a href="#call-screening">Phone+</a>, our own phone app, in which the screening, transcripts, call notes and
+      search all stay on your phone. Or make your own <a href="#own-apps">Google Phone</a>, straight from the Play
+      Store, a system app, and use Google's Call Screen, Hold for Me and visual voicemail. Pick one, switch later, or
+      keep GrapheneOS's own dialer. +PLUS just gives you the choice.</li>
+    <li><strong>Temporary root, for when you need to look under the hood.</strong> If you develop software, or audit an
+      app's security, sometimes you need to see what's really stored on the phone. Normally that means building your
+      own debug version of GrapheneOS from source, and then finding you can't even install it over the top. While
+      GrapheneOS holds the signing key, your phone accepts only GrapheneOS's builds. A build of your own means unlocking
+      the bootloader, which wipes the phone and everything you wanted to look at, then re-flashing it. With +PLUS your
+      phone already trusts your key, so it's a box you tick when you import that key:
+      <ul>
+        <li>root for the adb shell over USB only, never for apps;</li>
+        <li>the bootloader stays locked and your data stays put;</li>
+        <li>the change is listed before it takes effect;</li>
+        <li>a notification stays up the whole time it's on.</li>
+      </ul>
+      When you're done, one tap builds you back to normal. It's in when you need it, out when you don't, and the key
+      that turns it on is yours alone. <a href="#debug-root">How to use it</a>.</li>
+  </ul>
+  <p>Everything else stays exactly as GrapheneOS made it: the same releases, the same hardening, the same updates, with
+    one more key in the loop, and it's yours.</p>
 
   <h2 id="checks">Where the checks are</h2>
   <div class="table">
