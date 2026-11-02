@@ -87,7 +87,7 @@
   },
   "plus": {
     "apk": "assets/plus/Plus.apk",
-    "version": 17
+    "version": 18
   },
   "systemXmls": {
     "system/etc/permissions/app.seamlessupdate.client.xml": "assets/system/app.seamlessupdate.client.permissions.xml",

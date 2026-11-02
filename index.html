@@ -76,6 +76,9 @@
 
   <h2 id="whats-new">What's new</h2>
   <ul>
+    <li><strong>+PLUS 18:</strong> GrapheneOS's setup step for <em>security preview releases</em> now works with +PLUS
+      (it was skipped before), with a switch on the +PLUS screen; debug root explains its one-time setup itself, and
+      choosing it no longer starts a build until you say so.</li>
     <li><strong>+PLUS 17:</strong> a clearer +PLUS screen that says what is happening now (a build and its step, an
       update waiting for Wi-Fi or for your restart, a failure and when it tries again), what is available and what the
       phone runs. New for developers: <a href="#debug-root">debug root</a>, root for the adb shell as a build option.</li>
@@ -351,8 +354,10 @@
       (development only)</strong> and import; choose the Magisk APK when asked. Only this screen turns it on, so it
       needs your key backup.</li>
     <li>+PLUS builds the update with Magisk in the boot image, signed with your key; the bootloader stays locked.
-      <strong>Restart to finish</strong> shows <em>Debug root ON</em> before it takes effect.</li>
-    <li>After the restart, connect USB and run <code>adb shell /debug_ramdisk/su -c id</code>. The first time, Magisk
+      <strong>Restart to finish</strong> shows <em>Debug root ON</em> before it takes effect. Choosing it records your
+      choice; build now or with your next update.</li>
+    <li>After the restart +PLUS shows the one-time setup steps. Connect USB and run
+      <code>adb shell /debug_ramdisk/su -c id</code>. The first time, Magisk
       asks to finish its setup: tap OK (it installs the Magisk app), grant <strong>Shell</strong>, and in Magisk set
       <strong>Settings &gt; Superuser access</strong> to <strong>ADB only</strong>, so no app can ever get root. Tap
       Cancel if it asks for <em>additional setup</em>.</li>
