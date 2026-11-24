@@ -152,3 +152,7 @@ figure.shot figcaption { margin-top: .55rem; font-size: .9rem; color: var(--mute
 .phones figure.shot { margin: 0; }
 .phones figure.shot img { border-radius: 18px; }
 figure.shot.side { max-width: 22rem; }
+.screens { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; align-items: start; margin: 1.5rem 0; }
+.screens figure.shot { margin: 0; }
+.screens figure.shot img, figure.shot.single img { border-radius: 14px; }
+figure.shot.single { max-width: 22rem; }
