@@ -138,3 +138,17 @@ figure.diagram img, figure.diagram svg { width: 100%; }
 @media (prefers-color-scheme: dark) { figure.diagram img.invert-dark { filter: invert(1); } }
 
 @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+
+/* Screenshots (preview pages). Wide shots may run past the reading column on large screens. */
+figure.shot { margin: 1.5rem 0; }
+figure.shot img { display: block; width: 100%; height: auto; border: 1px solid var(--rule); border-radius: 10px;
+  box-shadow: 0 6px 24px light-dark(rgba(0,0,0,.08), rgba(0,0,0,.5)); background: var(--tint); }
+figure.shot figcaption { margin-top: .55rem; font-size: .9rem; color: var(--muted); }
+@media (min-width: 72rem) { figure.shot.wide { margin-right: -5rem; } }
+.shots-2 { display: grid; gap: 1rem; grid-template-columns: 1fr; }
+.shots-2 figure.shot { margin: .5rem 0; }
+@media (min-width: 40rem) { .shots-2 { grid-template-columns: 1fr 1fr; } }
+.phones { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem; margin: 1.5rem 0; }
+.phones figure.shot { margin: 0; }
+.phones figure.shot img { border-radius: 18px; }
+figure.shot.side { max-width: 22rem; }
